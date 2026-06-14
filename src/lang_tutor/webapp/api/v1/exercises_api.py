@@ -15,10 +15,10 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi_tools.schemas.auth import SessionData  # noqa: TC002
-from lang_tools.words.word_store import get_words_filtered
 from pydantic import BaseModel
 from pydantic import Field
 
+from lang_tutor.content import get_content_source
 from lang_tutor.exercises.conversational_tutor import TutorMessage
 from lang_tutor.exercises.diacritic_typing import DiacriticTypingExercise
 from lang_tutor.exercises.pair_matching import PairMatchingExercise
@@ -102,7 +102,7 @@ async def pair_matching_start(
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
     """Start a new pair matching round using real words."""
-    words = get_words_filtered(language=body.language)
+    words = get_content_source().get_words_filtered(language=body.language)
     # Filter to words that have the target translation
     words_with_trans = [
         w for w in words if body.target_language in w.translations
@@ -160,7 +160,7 @@ async def wordle_start(
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
     """Start a new wordle game with a real word."""
-    words = get_words_filtered(language=body.language)
+    words = get_content_source().get_words_filtered(language=body.language)
     candidates = [w for w in words if w.length == body.word_length]
     if not candidates:
         raise HTTPException(
@@ -218,7 +218,7 @@ async def diacritic_start(
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
     """Start a new diacritic typing round with a real accented word."""
-    words = get_words_filtered(language=body.language)
+    words = get_content_source().get_words_filtered(language=body.language)
     accented = [w for w in words if w.has_accent]
     if not accented:
         raise HTTPException(
@@ -274,7 +274,7 @@ async def reconstruction_start(
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
     """Start a sentence reconstruction round using word examples."""
-    words = get_words_filtered(language=body.language)
+    words = get_content_source().get_words_filtered(language=body.language)
     words_with_examples = [w for w in words if w.examples]
     if not words_with_examples:
         raise HTTPException(

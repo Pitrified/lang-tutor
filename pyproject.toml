@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = "==3.14.*"
 dependencies = [
     "python-dotenv>=1.0",
+    "httpx>=0.28",
     "lang-tools @ git+https://github.com/Pitrified/lang-tools@main",
     "loguru>=0.7.3",
 ]

@@ -1204,6 +1204,7 @@ name = "lang-tutor"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "lang-tools" },
     { name = "loguru" },
     { name = "python-dotenv" },
@@ -1259,6 +1260,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi-tools", marker = "extra == 'webapp'", git = "https://github.com/Pitrified/fastapi-tools?rev=v0.1.0" },
+    { name = "httpx", specifier = ">=0.28" },
     { name = "lang-tools", editable = "../lang-tools" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "python-dotenv", specifier = ">=1.0" },

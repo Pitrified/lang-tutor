@@ -11,6 +11,7 @@ is used to load different paths and other parameters based on the environment.
 from loguru import logger as lg
 
 from lang_tutor.metaclasses.singleton import Singleton
+from lang_tutor.params.content_params import ContentParams
 from lang_tutor.params.env_type import EnvType
 from lang_tutor.params.lang_tutor_paths import LangTutorPaths
 from lang_tutor.params.llm_params import LlmParams
@@ -45,6 +46,7 @@ class LangTutorParams(metaclass=Singleton):
         self.paths = LangTutorPaths(env_type=self.env_type)
         self.sample = SampleParams()
         self.llm = LlmParams()
+        self.content = ContentParams()
         self.webapp = WebappParams(
             stage=self.env_type.stage,
             location=self.env_type.location,
@@ -56,6 +58,7 @@ class LangTutorParams(metaclass=Singleton):
         s += f"\n{self.paths}"
         s += f"\n{self.sample}"
         s += f"\n{self.llm}"
+        s += f"\n{self.content}"
         s += f"\n{self.webapp}"
         return s
 
@@ -82,3 +85,8 @@ def get_webapp_params() -> WebappParams:
 def get_llm_params() -> LlmParams:
     """Get the LLM params."""
     return get_lang_tutor_params().llm
+
+
+def get_content_params() -> ContentParams:
+    """Get the content source params."""
+    return get_lang_tutor_params().content

@@ -11,9 +11,8 @@ from fastapi import Query
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 from fastapi_tools.schemas.auth import SessionData
-from lang_tools.words.word_store import get_word_by_id
-from lang_tools.words.word_store import get_words_filtered
 
+from lang_tutor.content import get_content_source
 from lang_tutor.webapp.core.auth import get_current_user
 
 router = APIRouter(prefix="/words", tags=["words"])
@@ -27,7 +26,7 @@ async def word_list(
     topic: Annotated[str | None, Query()] = None,
 ) -> HTMLResponse:
     """Render word browsing page with optional filters."""
-    words = get_words_filtered(language=language, topic=topic)
+    words = get_content_source().get_words_filtered(language=language, topic=topic)
     templates = request.app.state.templates
     return templates.TemplateResponse(
         request,
@@ -50,7 +49,7 @@ async def word_list_partial(
     topic: Annotated[str | None, Query()] = None,
 ) -> HTMLResponse:
     """Return only the word table partial (for HTMX filter updates)."""
-    words = get_words_filtered(language=language, topic=topic)
+    words = get_content_source().get_words_filtered(language=language, topic=topic)
     templates = request.app.state.templates
     return templates.TemplateResponse(
         request,
@@ -66,7 +65,7 @@ async def word_detail(
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> HTMLResponse:
     """Render word detail page."""
-    word = get_word_by_id(word_id)
+    word = get_content_source().get_word_by_id(word_id)
     templates = request.app.state.templates
     return templates.TemplateResponse(
         request,

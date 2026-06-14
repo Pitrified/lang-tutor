@@ -79,6 +79,7 @@ nav:
       - UV Package Manager: guides/uv.md
       - Pre-commit Hooks: guides/pre_commit.md
       - Params / Config Pattern: guides/params_config.md
+      - Content source (words over HTTP): guides/content_source.md
       - Webapp setup: guides/webapp_setup.md
   - API Reference: reference/
   - Contributing: contributing.md
