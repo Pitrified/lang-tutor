@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import httpx
-from lang_tools.words.word import Word
+from lang_tools.lexicon.lemma import Lemma
 from loguru import logger as lg
 
 from lang_tutor.content.base import ContentSource
@@ -21,7 +21,7 @@ from lang_tutor.content.base import ContentSource
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-_WORDS_PATH = "/api/v1/words"
+_LEMMAS_PATH = "/api/v1/lemmas"
 _DEFAULT_TIMEOUT = 10.0
 
 
@@ -66,34 +66,34 @@ class HttpContentSource(ContentSource):
         self.base_url = base_url.rstrip("/")
         self._client = client or httpx.Client(base_url=self.base_url, timeout=timeout)
 
-    def get_words_filtered(
+    def get_lemmas_filtered(
         self,
         language: str | None = None,
         topic: str | None = None,
-    ) -> list[Word]:
-        """Return words filtered by optional language and/or topic."""
+    ) -> list[Lemma]:
+        """Return lemmas filtered by optional language and/or topic."""
         params: dict[str, str] = {}
         if language is not None:
             params["language"] = language
         if topic is not None:
             params["topic"] = topic
-        payload = self._get_json(_WORDS_PATH, params=params)
+        payload = self._get_json(_LEMMAS_PATH, params=params)
         if not isinstance(payload, list):
-            msg = f"Expected a list of words, got {type(payload).__name__}."
+            msg = f"Expected a list of lemmas, got {type(payload).__name__}."
             raise ContentServiceError(msg)
-        return [Word.model_validate(item) for item in payload]
+        return [Lemma.model_validate(item) for item in payload]
 
-    def get_word_by_id(self, word_id: str) -> Word | None:
-        """Return a single word by its deterministic id, or None if absent."""
+    def get_lemma_by_id(self, lemma_id: str) -> Lemma | None:
+        """Return a single lemma by its deterministic id, or None if absent."""
         try:
-            response = self._client.get(f"{_WORDS_PATH}/{word_id}")
+            response = self._client.get(f"{_LEMMAS_PATH}/{lemma_id}")
         except httpx.HTTPError as exc:
             msg = f"Failed to reach lang-tools service: {exc}"
             raise ContentServiceError(msg) from exc
         if response.status_code == httpx.codes.NOT_FOUND:
             return None
         self._raise_for_status(response)
-        return Word.model_validate(response.json())
+        return Lemma.model_validate(response.json())
 
     def _get_json(self, path: str, *, params: Mapping[str, str]) -> object:
         """Issue a GET and return the decoded JSON body.

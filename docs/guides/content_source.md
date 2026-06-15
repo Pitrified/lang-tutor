@@ -1,15 +1,15 @@
-# Content source (where words come from)
+# Content source (where lemmas come from)
 
-`lang-tutor` reads word content through a single seam, `ContentSource`, with two
+`lang-tutor` reads lemma content through a single seam, `ContentSource`, with two
 interchangeable implementations. The transport is chosen by configuration, so
-the rest of the app (exercises, word browsing) never knows whether content
+the rest of the app (exercises, lemma browsing) never knows whether content
 arrives over HTTP or from an in-process read.
 
 ```python
 from lang_tutor.content import get_content_source
 
-words = get_content_source().get_words_filtered(language="pt")
-word = get_content_source().get_word_by_id(word_id)
+lemmas = get_content_source().get_lemmas_filtered(language="pt")
+lemma = get_content_source().get_lemma_by_id(lemma_id)
 ```
 
 ## The two sources
@@ -17,9 +17,9 @@ word = get_content_source().get_word_by_id(word_id)
 | Source | Class | When to use |
 | ------ | ----- | ----------- |
 | HTTP (default) | `HttpContentSource` | Deployed topology: `lang-tools` runs as a service and `lang-tutor` consumes it over HTTP, never storing content locally. |
-| In-process | `InProcessContentSource` | Local/dev without running the service. Reads the `lang-tools` word store directly (requires the content materialised on disk via git-lfs). |
+| In-process | `InProcessContentSource` | Local/dev without running the service. Reads the `lang-tools` lemma store directly (requires the content materialised on disk via git-lfs). |
 
-Both return the same `lang_tools.words.word.Word` model - including the computed
+Both return the same `lang_tools.lexicon.lemma.Lemma` model - including the computed
 fields (`id`, `has_accent`, `length`, ...) the exercises rely on - so they are
 drop-in interchangeable.
 
@@ -47,7 +47,7 @@ To run the HTTP path locally, start the `lang-tools` read service first (see the
 
 ## Error handling
 
-`HttpContentSource` maps a `404` on `get_word_by_id` to `None` (consistent with
+`HttpContentSource` maps a `404` on `get_lemma_by_id` to `None` (consistent with
 the in-process store). Any other non-2xx response, or a transport failure,
 raises `ContentServiceError`.
 

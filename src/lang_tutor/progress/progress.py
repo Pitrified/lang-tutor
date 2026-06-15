@@ -1,8 +1,8 @@
-"""Per-user per-word progress tracking.
+"""Per-user per-lemma progress tracking.
 
-`UserWordProgress` is the single state object updated after every exercise
+`UserLemmaProgress` is the single state object updated after every exercise
 round. The selector module reads these records to produce weighted random
-samples that prioritise unseen / error-heavy words.
+samples that prioritise unseen / error-heavy lemmas.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ class ExerciseStats(BaseModel):
     """Per-exercise-type breakdown of progress.
 
     Attributes:
-        seen_count: Times the user has been shown the word in this exercise.
+        seen_count: Times the user has been shown the lemma in this exercise.
         correct_count: Times the user answered correctly.
         error_count: Times the user answered incorrectly.
         last_seen_at: Most recent encounter timestamp.
@@ -43,12 +43,12 @@ class ExerciseStats(BaseModel):
         self.last_seen_at = when if when is not None else datetime.now()  # noqa: DTZ005
 
 
-class UserWordProgress(BaseModel):
-    """Per-user per-word performance record.
+class UserLemmaProgress(BaseModel):
+    """Per-user per-lemma performance record.
 
     Attributes:
         user_id: Opaque user identifier.
-        word_id: ID of the associated `Word`.
+        lemma_id: ID of the associated `Lemma`.
         seen_count: Total times shown across all exercises.
         correct_count: Total correct answers across all exercises.
         error_count: Total incorrect answers across all exercises.
@@ -58,7 +58,7 @@ class UserWordProgress(BaseModel):
     """
 
     user_id: str
-    word_id: str
+    lemma_id: str
     seen_count: int = 0
     correct_count: int = 0
     error_count: int = 0

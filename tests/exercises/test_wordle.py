@@ -1,13 +1,13 @@
 """Tests for `lang_tutor.exercises.wordle`."""
 
-from lang_tools.words.word import Word
+from lang_tools.lexicon.lemma import Lemma
 
 from lang_tutor.exercises.wordle import WordleExercise
 from lang_tutor.exercises.wordle import _evaluate
 
 
-def _word(text: str = "amor") -> Word:
-    return Word(text=text, language="pt", part_of_speech="noun", frequency="medium")
+def _lemma(text: str = "amor") -> Lemma:
+    return Lemma(text=text, language="pt", part_of_speech="noun", frequency="medium")
 
 
 def test_evaluate_marks_correct_misplaced_wrong() -> None:
@@ -19,24 +19,24 @@ def test_evaluate_marks_correct_misplaced_wrong() -> None:
 
 def test_wordle_correct_guess() -> None:
     ex = WordleExercise()
-    round_ = ex.start(_word("amor"))
+    round_ = ex.start(_lemma("amor"))
     result = ex.submit(round_, "amor")
     assert result.correct is True
-    assert result.word_results
-    assert result.word_results[0].correct is True
+    assert result.lemma_results
+    assert result.lemma_results[0].correct is True
 
 
 def test_wordle_wrong_length_rejected() -> None:
     ex = WordleExercise()
-    round_ = ex.start(_word("amor"))
+    round_ = ex.start(_lemma("amor"))
     result = ex.submit(round_, "am")
     assert result.correct is False
 
 
 def test_wordle_exhausts_attempts() -> None:
     ex = WordleExercise()
-    round_ = ex.start(_word("amor"), max_attempts=1)
+    round_ = ex.start(_lemma("amor"), max_attempts=1)
     result = ex.submit(round_, "vida")
     assert result.correct is False
-    assert result.word_results
-    assert result.word_results[0].correct is False
+    assert result.lemma_results
+    assert result.lemma_results[0].correct is False

@@ -2,15 +2,15 @@
 
 import random
 
-from lang_tools.words.word import Word
+from lang_tools.lexicon.lemma import Lemma
 import pytest
 
 from lang_tutor.exercises.pair_matching import MissingTranslationError
 from lang_tutor.exercises.pair_matching import PairMatchingExercise
 
 
-def _word(text: str, translations: dict[str, str]) -> Word:
-    return Word(
+def _lemma(text: str, translations: dict[str, str]) -> Lemma:
+    return Lemma(
         text=text,
         language="pt",
         part_of_speech="noun",
@@ -20,17 +20,17 @@ def _word(text: str, translations: dict[str, str]) -> Word:
 
 
 def test_pair_matching_correct_pair() -> None:
-    words = [_word("amor", {"en": "love"}), _word("paz", {"en": "peace"})]
+    lemmas = [_lemma("amor", {"en": "love"}), _lemma("paz", {"en": "peace"})]
     ex = PairMatchingExercise(target_language="en", rng=random.Random(0))
-    round_ = ex.start(words)
+    round_ = ex.start(lemmas)
     result = ex.submit(round_, ("amor", "love"))
     assert result.correct is True
 
 
 def test_pair_matching_wrong_pair() -> None:
-    words = [_word("amor", {"en": "love"}), _word("paz", {"en": "peace"})]
+    lemmas = [_lemma("amor", {"en": "love"}), _lemma("paz", {"en": "peace"})]
     ex = PairMatchingExercise(target_language="en", rng=random.Random(0))
-    round_ = ex.start(words)
+    round_ = ex.start(lemmas)
     result = ex.submit(round_, ("amor", "peace"))
     assert result.correct is False
 
@@ -38,4 +38,4 @@ def test_pair_matching_wrong_pair() -> None:
 def test_missing_translation_raises() -> None:
     ex = PairMatchingExercise(target_language="en", rng=random.Random(0))
     with pytest.raises(MissingTranslationError):
-        ex.start([_word("amor", {"fr": "amour"})])
+        ex.start([_lemma("amor", {"fr": "amour"})])

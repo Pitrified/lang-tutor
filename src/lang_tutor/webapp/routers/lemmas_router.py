@@ -1,6 +1,6 @@
-"""Word browsing page routes.
+"""Lemma browsing page routes.
 
-Serves pages for browsing and viewing vocabulary words.
+Serves pages for browsing and viewing vocabulary lemmas.
 """
 
 from typing import Annotated
@@ -15,65 +15,65 @@ from fastapi_tools.schemas.auth import SessionData
 from lang_tutor.content import get_content_source
 from lang_tutor.webapp.core.auth import get_current_user
 
-router = APIRouter(prefix="/words", tags=["words"])
+router = APIRouter(prefix="/lemmas", tags=["lemmas"])
 
 
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def word_list(
+async def lemma_list(
     request: Request,
     user: Annotated[SessionData, Depends(get_current_user)],
     language: Annotated[str | None, Query()] = None,
     topic: Annotated[str | None, Query()] = None,
 ) -> HTMLResponse:
-    """Render word browsing page with optional filters."""
-    words = get_content_source().get_words_filtered(language=language, topic=topic)
+    """Render lemma browsing page with optional filters."""
+    lemmas = get_content_source().get_lemmas_filtered(language=language, topic=topic)
     templates = request.app.state.templates
     return templates.TemplateResponse(
         request,
-        "pages/words/index.html",
+        "pages/lemmas/index.html",
         {
             "user": user,
-            "active_page": "words",
+            "active_page": "lemmas",
             "language_filter": language,
             "topic_filter": topic,
-            "words": words,
+            "lemmas": lemmas,
         },
     )
 
 
 @router.get("/partial", response_class=HTMLResponse, include_in_schema=False)
-async def word_list_partial(
+async def lemma_list_partial(
     request: Request,
     user: Annotated[SessionData, Depends(get_current_user)],
     language: Annotated[str | None, Query()] = None,
     topic: Annotated[str | None, Query()] = None,
 ) -> HTMLResponse:
-    """Return only the word table partial (for HTMX filter updates)."""
-    words = get_content_source().get_words_filtered(language=language, topic=topic)
+    """Return only the lemma table partial (for HTMX filter updates)."""
+    lemmas = get_content_source().get_lemmas_filtered(language=language, topic=topic)
     templates = request.app.state.templates
     return templates.TemplateResponse(
         request,
-        "pages/words/_word_table.html",
-        {"words": words},
+        "pages/lemmas/_lemma_table.html",
+        {"lemmas": lemmas},
     )
 
 
-@router.get("/{word_id}", response_class=HTMLResponse, include_in_schema=False)
-async def word_detail(
+@router.get("/{lemma_id}", response_class=HTMLResponse, include_in_schema=False)
+async def lemma_detail(
     request: Request,
-    word_id: str,
+    lemma_id: str,
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> HTMLResponse:
-    """Render word detail page."""
-    word = get_content_source().get_word_by_id(word_id)
+    """Render lemma detail page."""
+    lemma = get_content_source().get_lemma_by_id(lemma_id)
     templates = request.app.state.templates
     return templates.TemplateResponse(
         request,
-        "pages/words/detail.html",
+        "pages/lemmas/detail.html",
         {
             "user": user,
-            "active_page": "words",
-            "word_id": word_id,
-            "word": word,
+            "active_page": "lemmas",
+            "lemma_id": lemma_id,
+            "lemma": lemma,
         },
     )

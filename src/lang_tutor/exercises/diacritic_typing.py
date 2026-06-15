@@ -1,6 +1,6 @@
 """Diacritic typing exercise (from `go-accenter`).
 
-The user types a hidden accented word character by character. Each `submit`
+The user types a hidden accented lemma character by character. Each `submit`
 evaluates one keystroke; correct characters are revealed, wrong keys are added
 to a disabled set. A round is "won" when every position is filled.
 """
@@ -15,12 +15,12 @@ from typing import Literal
 from lang_tools.language.normalization import normalize as _normalize
 
 from lang_tutor.exercises.base import ExerciseRound
+from lang_tutor.exercises.base import LemmaResult
 from lang_tutor.exercises.base import RoundResult
-from lang_tutor.exercises.base import WordResult
 from lang_tutor.exercises.base import _BaseExercise
 
 if TYPE_CHECKING:
-    from lang_tools.words.word import Word
+    from lang_tools.lexicon.lemma import Lemma
 
 HintLevel = Literal["off", "show_unaccented", "show_all"]
 
@@ -38,7 +38,7 @@ def _initial_display(text: str, hint_level: HintLevel) -> list[str]:
 
 @dataclass
 class _DiacriticState:
-    word: Word
+    lemma: Lemma
     hint_level: HintLevel
     display: list[str]
     disabled_keys: set[str] = field(default_factory=set)
@@ -60,14 +60,14 @@ class DiacriticTypingExercise(_BaseExercise):
 
     def start(
         self,
-        word: Word,
+        lemma: Lemma,
         *,
         hint_level: HintLevel = "off",
     ) -> ExerciseRound:
-        """Build a round for a single word.
+        """Build a round for a single lemma.
 
         Args:
-            word: Target word; must contain accented characters for the
+            lemma: Target lemma; must contain accented characters for the
                 exercise to be meaningful.
             hint_level: Initial hint level (see `HintLevel`).
 
@@ -76,12 +76,12 @@ class DiacriticTypingExercise(_BaseExercise):
         """
         self._ensure_started()
         state = _DiacriticState(
-            word=word,
+            lemma=lemma,
             hint_level=hint_level,
-            display=_initial_display(word.text, hint_level),
+            display=_initial_display(lemma.text, hint_level),
         )
         # Advance cursor past pre-revealed characters.
-        while state.cursor < len(word.text) and state.display[state.cursor] != "_":
+        while state.cursor < len(lemma.text) and state.display[state.cursor] != "_":
             state.cursor += 1
 
         return ExerciseRound(
@@ -89,7 +89,7 @@ class DiacriticTypingExercise(_BaseExercise):
                 "display": state.display.copy(),
                 "hint_level": hint_level,
                 "disabled_keys": set(),
-                "glosses": [g.text for g in word.glosses],
+                "glosses": [g.text for g in lemma.glosses],
             },
             expected=state,
         )
@@ -103,15 +103,15 @@ class DiacriticTypingExercise(_BaseExercise):
 
         Returns:
             `RoundResult` whose `correct` is True for that keystroke. Once the
-            word is complete, a `WordResult` with overall correctness (no
-            errors) is added to `word_results`.
+            lemma is complete, a `LemmaResult` with overall correctness (no
+            errors) is added to `lemma_results`.
         """
         state: _DiacriticState = round_.expected
 
-        if state.cursor >= len(state.word.text):
-            return RoundResult(correct=True, feedback="Word already complete.")
+        if state.cursor >= len(state.lemma.text):
+            return RoundResult(correct=True, feedback="Already complete.")
 
-        expected_char = state.word.text[state.cursor]
+        expected_char = state.lemma.text[state.cursor]
         correct = character == expected_char
 
         if correct:
@@ -119,7 +119,7 @@ class DiacriticTypingExercise(_BaseExercise):
             state.cursor += 1
             # Skip already-revealed positions.
             while (
-                state.cursor < len(state.word.text)
+                state.cursor < len(state.lemma.text)
                 and state.display[state.cursor] != "_"
             ):
                 state.cursor += 1
@@ -131,11 +131,11 @@ class DiacriticTypingExercise(_BaseExercise):
         round_.prompt["display"] = state.display.copy()
         round_.prompt["disabled_keys"] = set(state.disabled_keys)
 
-        word_results: list[WordResult] = []
-        completed = state.cursor >= len(state.word.text)
+        lemma_results: list[LemmaResult] = []
+        completed = state.cursor >= len(state.lemma.text)
         if completed:
-            word_results.append(
-                WordResult(word_id=state.word.id, correct=state.error_count == 0),
+            lemma_results.append(
+                LemmaResult(lemma_id=state.lemma.id, correct=state.error_count == 0),
             )
 
         result = RoundResult(
@@ -145,7 +145,7 @@ class DiacriticTypingExercise(_BaseExercise):
                 if correct
                 else f"{character!r} is not at position {state.cursor}."
             ),
-            word_results=word_results,
+            lemma_results=lemma_results,
         )
         self._bookkeep(result)
         return result

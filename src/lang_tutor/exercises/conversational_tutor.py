@@ -1,6 +1,6 @@
 """Conversational tutor exercise (from `fala-comigo-ai-tutor`).
 
-This exercise is loosely coupled to `UserWordProgress`: each user turn is sent
+This exercise is loosely coupled to `UserLemmaProgress`: each user turn is sent
 to a `TutorResponseChain` (defined in `lang_tutor.llm.tutor`) that produces a
 correction block plus a conversation continuation. The chain itself is
 provided by the caller so this module stays free of an LLM dependency.

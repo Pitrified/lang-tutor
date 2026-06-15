@@ -3,7 +3,7 @@
 Public API:
     EXERCISE_TYPES: tuple of supported exercise type strings.
     ExerciseType: literal alias.
-    ExerciseRound, RoundResult, WordResult, SessionSummary: shared data shapes.
+    ExerciseRound, RoundResult, LemmaResult, SessionSummary: shared data shapes.
     SentenceReconstructionExercise, PairMatchingExercise,
     DiacriticTypingExercise, WordleExercise, ConversationalTutorExercise:
     concrete exercise classes.
@@ -14,9 +14,9 @@ Public API:
 from lang_tutor.exercises.base import EXERCISE_TYPES
 from lang_tutor.exercises.base import ExerciseRound
 from lang_tutor.exercises.base import ExerciseType
+from lang_tutor.exercises.base import LemmaResult
 from lang_tutor.exercises.base import RoundResult
 from lang_tutor.exercises.base import SessionSummary
-from lang_tutor.exercises.base import WordResult
 from lang_tutor.exercises.conversational_tutor import ConversationalTutorExercise
 from lang_tutor.exercises.conversational_tutor import TutorMessage
 from lang_tutor.exercises.diacritic_typing import DiacriticTypingExercise
@@ -35,6 +35,7 @@ __all__ = [
     "ExerciseRound",
     "ExerciseType",
     "HintLevel",
+    "LemmaResult",
     "LetterResult",
     "LetterState",
     "PairMatchingExercise",
@@ -42,7 +43,6 @@ __all__ = [
     "SentenceReconstructionExercise",
     "SessionSummary",
     "TutorMessage",
-    "WordResult",
     "WordleConfig",
     "WordleExercise",
 ]

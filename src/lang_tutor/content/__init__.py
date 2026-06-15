@@ -1,11 +1,11 @@
 """Content access for lang-tutor.
 
-`lang-tutor` reads word content through a single `ContentSource` seam with two
+`lang-tutor` reads lemma content through a single `ContentSource` seam with two
 interchangeable implementations:
 
 - `HttpContentSource` - calls the `lang-tools` HTTP read service (the default,
   matching the deployed topology).
-- `InProcessContentSource` - reads the `lang-tools` word store in-process
+- `InProcessContentSource` - reads the `lang-tools` lemma store in-process
   (handy for local/dev without running the service).
 
 Call sites use `get_content_source()`; the transport is selected by

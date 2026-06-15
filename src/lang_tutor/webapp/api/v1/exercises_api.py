@@ -40,7 +40,7 @@ class PairMatchingStartRequest(BaseModel):
 
     language: str = "pt"
     target_language: str = "en"
-    num_words: int = 5
+    num_lemmas: int = 5
 
 
 class WordleStartRequest(BaseModel):
@@ -101,18 +101,18 @@ async def pair_matching_start(
     body: PairMatchingStartRequest,
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
-    """Start a new pair matching round using real words."""
-    words = get_content_source().get_words_filtered(language=body.language)
-    # Filter to words that have the target translation
-    words_with_trans = [
-        w for w in words if body.target_language in w.translations
+    """Start a new pair matching round using real lemmas."""
+    lemmas = get_content_source().get_lemmas_filtered(language=body.language)
+    # Filter to lemmas that have the target translation
+    lemmas_with_trans = [
+        lemma for lemma in lemmas if body.target_language in lemma.translations
     ]
-    if len(words_with_trans) < body.num_words:
+    if len(lemmas_with_trans) < body.num_lemmas:
         raise HTTPException(
             status_code=400,
-            detail=f"Not enough words with {body.target_language} translation.",
+            detail=f"Not enough lemmas with {body.target_language} translation.",
         )
-    selected = random.sample(words_with_trans, body.num_words)
+    selected = random.sample(lemmas_with_trans, body.num_lemmas)
     exercise = PairMatchingExercise(target_language=body.target_language)
     round_ = exercise.start(selected)
 
@@ -123,8 +123,8 @@ async def pair_matching_start(
     return ExerciseResponse(
         status="ok",
         data={
-            "left_words": round_.prompt["left_words"],
-            "right_words": round_.prompt["right_words"],
+            "left_lemmas": round_.prompt["left_lemmas"],
+            "right_lemmas": round_.prompt["right_lemmas"],
         },
     )
 
@@ -159,9 +159,9 @@ async def wordle_start(
     body: WordleStartRequest,
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
-    """Start a new wordle game with a real word."""
-    words = get_content_source().get_words_filtered(language=body.language)
-    candidates = [w for w in words if w.length == body.word_length]
+    """Start a new wordle game with a real lemma."""
+    lemmas = get_content_source().get_lemmas_filtered(language=body.language)
+    candidates = [lemma for lemma in lemmas if lemma.length == body.word_length]
     if not candidates:
         raise HTTPException(
             status_code=400,
@@ -217,17 +217,17 @@ async def diacritic_start(
     body: DiacriticStartRequest,
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
-    """Start a new diacritic typing round with a real accented word."""
-    words = get_content_source().get_words_filtered(language=body.language)
-    accented = [w for w in words if w.has_accent]
+    """Start a new diacritic typing round with a real accented lemma."""
+    lemmas = get_content_source().get_lemmas_filtered(language=body.language)
+    accented = [lemma for lemma in lemmas if lemma.has_accent]
     if not accented:
         raise HTTPException(
             status_code=400,
-            detail=f"No accented words for {body.language}.",
+            detail=f"No accented lemmas for {body.language}.",
         )
-    word = random.choice(accented)
+    lemma = random.choice(accented)
     exercise = DiacriticTypingExercise()
-    round_ = exercise.start(word, hint_level=body.hint_level)
+    round_ = exercise.start(lemma, hint_level=body.hint_level)
 
     round_key = f"{user.user_id}:diacritic"
     _active_rounds[round_key] = (exercise, round_)
@@ -238,7 +238,7 @@ async def diacritic_start(
             "display": round_.prompt["display"],
             "glosses": round_.prompt["glosses"],
             "word_length": len(round_.prompt["display"]),
-            "translation": word.translations.get("en", ""),
+            "translation": lemma.translations.get("en", ""),
         },
     )
 
@@ -260,10 +260,10 @@ async def diacritic_keystroke(
     data: dict[str, Any] = {
         "display": round_.prompt["display"],
         "correct_so_far": result.correct,
-        "finished": len(result.word_results) > 0,
+        "finished": len(result.lemma_results) > 0,
         "errors": round_.expected.error_count,
     }
-    if len(result.word_results) > 0:
+    if len(result.lemma_results) > 0:
         del _active_rounds[round_key]
     return ExerciseResponse(status="ok", data=data)
 
@@ -273,20 +273,20 @@ async def reconstruction_start(
     body: ReconstructionStartRequest,
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
-    """Start a sentence reconstruction round using word examples."""
-    words = get_content_source().get_words_filtered(language=body.language)
-    words_with_examples = [w for w in words if w.examples]
-    if not words_with_examples:
+    """Start a sentence reconstruction round using lemma examples."""
+    lemmas = get_content_source().get_lemmas_filtered(language=body.language)
+    lemmas_with_examples = [lemma for lemma in lemmas if lemma.examples]
+    if not lemmas_with_examples:
         raise HTTPException(
             status_code=400,
-            detail=f"No words with examples for {body.language}.",
+            detail=f"No lemmas with examples for {body.language}.",
         )
-    word = random.choice(words_with_examples)
-    example = word.examples[0]
+    lemma = random.choice(lemmas_with_examples)
+    example = lemma.examples[0]
     exercise = SentenceReconstructionExercise()
     round_ = exercise.start(
         sentence=example.sentence,
-        translation=example.translation or word.translations.get("en", ""),
+        translation=example.translation or lemma.translations.get("en", ""),
     )
 
     round_key = f"{user.user_id}:reconstruction"
@@ -317,9 +317,9 @@ async def reconstruction_submit(
     result = exercise.submit(round_, body.selected_portions)
     data: dict[str, Any] = {
         "correct": result.correct,
-        "finished": len(result.word_results) > 0,
+        "finished": len(result.lemma_results) > 0,
     }
-    if len(result.word_results) > 0:
+    if len(result.lemma_results) > 0:
         data["answer"] = " ".join(round_.expected)
         del _active_rounds[round_key]
     return ExerciseResponse(status="ok", data=data)

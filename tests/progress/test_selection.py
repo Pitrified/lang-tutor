@@ -2,17 +2,17 @@
 
 import random
 
-from lang_tools.words.word import Word
+from lang_tools.lexicon.lemma import Lemma
 
-from lang_tutor.progress.progress import UserWordProgress
+from lang_tutor.progress.progress import UserLemmaProgress
+from lang_tutor.progress.selection import LemmaFilter
 from lang_tutor.progress.selection import SelectionWeights
-from lang_tutor.progress.selection import WordFilter
 from lang_tutor.progress.selection import compute_weight
-from lang_tutor.progress.selection import select_words
+from lang_tutor.progress.selection import select_lemmas
 
 
-def _word(text: str = "amor", **extra: object) -> Word:
-    return Word(
+def _lemma(text: str = "amor", **extra: object) -> Lemma:
+    return Lemma(
         text=text,
         language="pt",
         part_of_speech="noun",
@@ -21,35 +21,37 @@ def _word(text: str = "amor", **extra: object) -> Word:
     )
 
 
-def test_useless_words_get_zero_weight() -> None:
-    w = _word()
-    progress = UserWordProgress(user_id="u", word_id=w.id, is_useless=True)
-    assert compute_weight(w, progress, SelectionWeights()) == 0.0
+def test_useless_lemmas_get_zero_weight() -> None:
+    lemma = _lemma()
+    progress = UserLemmaProgress(user_id="u", lemma_id=lemma.id, is_useless=True)
+    assert compute_weight(lemma, progress, SelectionWeights()) == 0.0
 
 
-def test_unseen_words_have_higher_weight_than_seen() -> None:
-    seen_word = _word("paz")
-    unseen_word = _word("amor")
-    seen_progress = UserWordProgress(user_id="u", word_id=seen_word.id, seen_count=10)
-    unseen_progress = UserWordProgress(user_id="u", word_id=unseen_word.id)
+def test_unseen_lemmas_have_higher_weight_than_seen() -> None:
+    seen_lemma = _lemma("paz")
+    unseen_lemma = _lemma("amor")
+    seen_progress = UserLemmaProgress(
+        user_id="u", lemma_id=seen_lemma.id, seen_count=10,
+    )
+    unseen_progress = UserLemmaProgress(user_id="u", lemma_id=unseen_lemma.id)
     weights = SelectionWeights()
-    assert compute_weight(unseen_word, unseen_progress, weights) > compute_weight(
-        seen_word, seen_progress, weights,
+    assert compute_weight(unseen_lemma, unseen_progress, weights) > compute_weight(
+        seen_lemma, seen_progress, weights,
     )
 
 
-def test_word_filter_min_length() -> None:
-    short = _word("oi")
-    long_word = _word("paciencia")
-    f = WordFilter(min_length=4)
+def test_lemma_filter_min_length() -> None:
+    short = _lemma("oi")
+    long_lemma = _lemma("paciencia")
+    f = LemmaFilter(min_length=4)
     assert not f.matches(short)
-    assert f.matches(long_word)
+    assert f.matches(long_lemma)
 
 
-def test_select_words_returns_distinct() -> None:
-    pool = [_word(t) for t in ("amor", "paz", "luz", "vida", "sol")]
-    progress: dict[str, UserWordProgress] = {}
+def test_select_lemmas_returns_distinct() -> None:
+    pool = [_lemma(t) for t in ("amor", "paz", "luz", "vida", "sol")]
+    progress: dict[str, UserLemmaProgress] = {}
     rng = random.Random(0)
-    chosen = select_words(pool, progress, n=3, rng=rng)
+    chosen = select_lemmas(pool, progress, n=3, rng=rng)
     assert len(chosen) == 3
-    assert len({w.id for w in chosen}) == 3
+    assert len({lemma.id for lemma in chosen}) == 3

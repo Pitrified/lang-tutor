@@ -1,7 +1,7 @@
 """Tests for the HTTP content source using a mocked transport."""
 
 import httpx
-from lang_tools.words.word import Word
+from lang_tools.lexicon.lemma import Lemma
 import pytest
 
 from lang_tutor.content.http import ContentServiceError
@@ -9,31 +9,34 @@ from lang_tutor.content.http import HttpContentSource
 
 _BASE_URL = "http://lang-tools.test"
 
-_CASA = Word(text="casa", language="pt", translations={"en": "house"})
-_AGUA = Word(text="água", language="pt", topics=["food"])
-_WORDS = [_CASA, _AGUA]
-_BY_ID = {w.id: w for w in _WORDS}
+_CASA = Lemma(text="casa", language="pt", translations={"en": "house"})
+_AGUA = Lemma(text="água", language="pt", topics=["food"])
+_LEMMAS = [_CASA, _AGUA]
+_BY_ID = {lemma.id: lemma for lemma in _LEMMAS}
 
 
 def _handler(request: httpx.Request) -> httpx.Response:
-    """Mimic the lang-tools word read API."""
+    """Mimic the lang-tools lemma read API."""
     path = request.url.path
-    if path == "/api/v1/words":
+    if path == "/api/v1/lemmas":
         language = request.url.params.get("language")
         topic = request.url.params.get("topic")
-        words = _WORDS
+        lemmas = _LEMMAS
         if language:
-            words = [w for w in words if w.language == language]
+            lemmas = [lemma for lemma in lemmas if lemma.language == language]
         if topic:
-            words = [w for w in words if topic in w.topics]
-        return httpx.Response(200, json=[w.model_dump(mode="json") for w in words])
-    prefix = "/api/v1/words/"
+            lemmas = [lemma for lemma in lemmas if topic in lemma.topics]
+        return httpx.Response(
+            200,
+            json=[lemma.model_dump(mode="json") for lemma in lemmas],
+        )
+    prefix = "/api/v1/lemmas/"
     if path.startswith(prefix):
-        word_id = path.removeprefix(prefix)
-        word = _BY_ID.get(word_id)
-        if word is None:
-            return httpx.Response(404, json={"detail": f"Word not found: {word_id}"})
-        return httpx.Response(200, json=word.model_dump(mode="json"))
+        lemma_id = path.removeprefix(prefix)
+        lemma = _BY_ID.get(lemma_id)
+        if lemma is None:
+            return httpx.Response(404, json={"detail": f"Lemma not found: {lemma_id}"})
+        return httpx.Response(200, json=lemma.model_dump(mode="json"))
     return httpx.Response(404)
 
 
@@ -46,33 +49,33 @@ def _make_source() -> HttpContentSource:
     return HttpContentSource(base_url=_BASE_URL, client=client)
 
 
-def test_get_words_filtered_parses_words() -> None:
-    """The source parses the JSON list into Word models."""
+def test_get_lemmas_filtered_parses_lemmas() -> None:
+    """The source parses the JSON list into Lemma models."""
     source = _make_source()
-    words = source.get_words_filtered()
-    assert {w.text for w in words} == {"casa", "água"}
-    assert all(isinstance(w, Word) for w in words)
+    lemmas = source.get_lemmas_filtered()
+    assert {lemma.text for lemma in lemmas} == {"casa", "água"}
+    assert all(isinstance(lemma, Lemma) for lemma in lemmas)
 
 
-def test_get_words_filtered_passes_filters() -> None:
+def test_get_lemmas_filtered_passes_filters() -> None:
     """Language and topic filters are forwarded as query params."""
     source = _make_source()
-    by_topic = source.get_words_filtered(topic="food")
-    assert [w.text for w in by_topic] == ["água"]
+    by_topic = source.get_lemmas_filtered(topic="food")
+    assert [lemma.text for lemma in by_topic] == ["água"]
 
 
-def test_get_word_by_id_found() -> None:
-    """A known id resolves to its word."""
+def test_get_lemma_by_id_found() -> None:
+    """A known id resolves to its lemma."""
     source = _make_source()
-    fetched = source.get_word_by_id(_CASA.id)
+    fetched = source.get_lemma_by_id(_CASA.id)
     assert fetched is not None
     assert fetched.text == "casa"
 
 
-def test_get_word_by_id_missing_returns_none() -> None:
+def test_get_lemma_by_id_missing_returns_none() -> None:
     """A 404 from the service maps to None, not an error."""
     source = _make_source()
-    assert source.get_word_by_id("nope") is None
+    assert source.get_lemma_by_id("nope") is None
 
 
 def test_server_error_raises() -> None:
@@ -87,7 +90,7 @@ def test_server_error_raises() -> None:
     )
     source = HttpContentSource(base_url=_BASE_URL, client=client)
     with pytest.raises(ContentServiceError):
-        source.get_words_filtered()
+        source.get_lemmas_filtered()
 
 
 def test_connection_error_raises() -> None:
@@ -103,4 +106,4 @@ def test_connection_error_raises() -> None:
     )
     source = HttpContentSource(base_url=_BASE_URL, client=client)
     with pytest.raises(ContentServiceError):
-        source.get_word_by_id("anything")
+        source.get_lemma_by_id("anything")

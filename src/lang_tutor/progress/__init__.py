@@ -1,26 +1,26 @@
-"""User-progress tracking and weighted word selection.
+"""User-progress tracking and weighted lemma selection.
 
 Public API:
-    UserWordProgress: per-user per-word performance record.
+    UserLemmaProgress: per-user per-lemma performance record.
     ExerciseStats: per-exercise-type breakdown of progress.
-    WordFilter: optional pool filter for `select_words`.
+    LemmaFilter: optional pool filter for `select_lemmas`.
     SelectionWeights: tunable weighting factors.
-    select_words: weighted random selection over a `Word` pool.
+    select_lemmas: weighted random selection over a `Lemma` pool.
     compute_weight: pure scoring function used by the selector.
 """
 
 from lang_tutor.progress.progress import ExerciseStats
-from lang_tutor.progress.progress import UserWordProgress
+from lang_tutor.progress.progress import UserLemmaProgress
+from lang_tutor.progress.selection import LemmaFilter
 from lang_tutor.progress.selection import SelectionWeights
-from lang_tutor.progress.selection import WordFilter
 from lang_tutor.progress.selection import compute_weight
-from lang_tutor.progress.selection import select_words
+from lang_tutor.progress.selection import select_lemmas
 
 __all__ = [
     "ExerciseStats",
+    "LemmaFilter",
     "SelectionWeights",
-    "UserWordProgress",
-    "WordFilter",
+    "UserLemmaProgress",
     "compute_weight",
-    "select_words",
+    "select_lemmas",
 ]

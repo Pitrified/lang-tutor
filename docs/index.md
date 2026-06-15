@@ -11,8 +11,8 @@ companion [`lang-tools`](https://github.com/Pitrified/lang-tools) library.
 
 - **Exercises** - five mechanics: sentence reconstruction, pair matching,
   diacritic typing, wordle, and a conversational tutor.
-- **Progress** - per-user `UserWordProgress` and weighted word selection over
-  the `lang-tools` word pool.
+- **Progress** - per-user `UserLemmaProgress` and weighted lemma selection over
+  the `lang-tools` lemma pool.
 - **Tutor chain** - an `llm-core` `StructuredLLMChain` producing a correction
   plus a conversation continuation.
 - **FastAPI webapp** - pages, runtime exercises API, Google OAuth (disabled in
@@ -34,7 +34,7 @@ uvicorn lang_tutor.webapp.app:app --reload
 ```
 
 `lang-tools` is consumed as a library; for local development it is resolved via
-an editable `[tool.uv.sources]` path to `../lang-tools`, and word content is
+an editable `[tool.uv.sources]` path to `../lang-tools`, and lemma content is
 read from that checkout in-process.
 
 ## Project Structure

@@ -8,9 +8,9 @@ from lang_tutor.params.lang_tutor_params import get_webapp_params
 from lang_tutor.webapp.api.v1.api_router import router as api_router
 from lang_tutor.webapp.routers.exercises_router import router as exercises_router
 from lang_tutor.webapp.routers.languages_router import router as languages_router
+from lang_tutor.webapp.routers.lemmas_router import router as lemmas_router
 from lang_tutor.webapp.routers.pages_router import router as pages_router
 from lang_tutor.webapp.routers.progress_router import router as progress_router
-from lang_tutor.webapp.routers.words_router import router as words_router
 
 
 def build_app() -> FastAPI:
@@ -28,7 +28,7 @@ def build_app() -> FastAPI:
         extra_routers=[
             pages_router,
             exercises_router,
-            words_router,
+            lemmas_router,
             progress_router,
             languages_router,
             api_router,
