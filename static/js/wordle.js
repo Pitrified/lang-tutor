@@ -97,8 +97,12 @@
 
   function handleKeydown(e) {
     if (!gameActive) return;
-    if (e.key === "Enter") handleKey("Enter");
-    else if (e.key === "Backspace") handleKey("Backspace");
+    // Enter would also "click" a focused button (New Game right after starting),
+    // restarting the game instead of submitting the guess.
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleKey("Enter");
+    } else if (e.key === "Backspace") handleKey("Backspace");
     else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toLowerCase());
   }
 
