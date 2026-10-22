@@ -5,14 +5,18 @@ interchangeable implementations:
 
 - `HttpContentSource` - calls the `lang-tools` HTTP read service (the default,
   matching the deployed topology).
-- `InProcessContentSource` - reads the `lang-tools` lemma store in-process
+- `InProcessContentSource` - reads the `lang-tools` lexicon store in-process
   (handy for local/dev without running the service).
+
+Both serve bounded reads only: drill cards for the exercises and paged lemma
+listings for the browse pages.
 
 Call sites use `get_content_source()`; the transport is selected by
 `ContentParams` (env: ``LANG_TOOLS_CONTENT_SOURCE`` / ``LANG_TOOLS_BASE_URL``).
 """
 
 from lang_tutor.content.base import ContentSource
+from lang_tutor.content.base import LemmaPage
 from lang_tutor.content.factory import get_content_source
 from lang_tutor.content.factory import set_content_source
 from lang_tutor.content.http import ContentServiceError
@@ -24,6 +28,7 @@ __all__ = [
     "ContentSource",
     "HttpContentSource",
     "InProcessContentSource",
+    "LemmaPage",
     "get_content_source",
     "set_content_source",
 ]

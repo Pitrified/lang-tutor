@@ -11,17 +11,29 @@ The content is public, so requests carry no authentication.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from typing import Literal
+from typing import overload
 
 import httpx
-from lang_tools.lexicon.lemma import Lemma
+from lang_tools.lexicon import Lemma
+from lang_tools.lexicon import LemmaCard
 from loguru import logger as lg
 
 from lang_tutor.content.base import ContentSource
+from lang_tutor.content.base import LemmaPage
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Sequence
+
+    from lang_tools.lexicon import CardQuery
+
+#: Query parameters as httpx takes them; a list of pairs repeats a key, which is
+#: how the service reads list fields (``translation_languages=en&...=it``).
+type QueryParams = list[tuple[str, str]]
 
 _LEMMAS_PATH = "/api/v1/lemmas"
+_CARDS_PATH = "/api/v1/cards"
+_TOTAL_HEADER = "X-Total-Count"
 _DEFAULT_TIMEOUT = 10.0
 
 
@@ -66,49 +78,109 @@ class HttpContentSource(ContentSource):
         self.base_url = base_url.rstrip("/")
         self._client = client or httpx.Client(base_url=self.base_url, timeout=timeout)
 
-    def get_lemmas_filtered(
+    def get_cards(self, query: CardQuery) -> list[LemmaCard]:
+        """Return up to ``query.limit`` drill cards matching the filters."""
+        payload = self._get(_CARDS_PATH, params=_card_params(query)).json()
+        if not isinstance(payload, list):
+            msg = f"Expected a list of cards, got {type(payload).__name__}."
+            raise ContentServiceError(msg)
+        return [LemmaCard.model_validate(item) for item in payload]
+
+    def get_card(
         self,
+        lemma_id: str,
+        *,
+        gloss_language: str = "en",
+        translation_languages: Sequence[str] = ("en",),
+    ) -> LemmaCard | None:
+        """Return the drill card of one lemma, or None if absent."""
+        params: QueryParams = [("gloss_language", gloss_language)]
+        params += [("translation_languages", lang) for lang in translation_languages]
+        path = f"{_CARDS_PATH}/{lemma_id}"
+        response = self._get(path, params=params, missing_ok=True)
+        if response is None:
+            return None
+        return LemmaCard.model_validate(response.json())
+
+    def get_lemma_page(
+        self,
+        *,
         language: str | None = None,
         topic: str | None = None,
-    ) -> list[Lemma]:
-        """Return lemmas filtered by optional language and/or topic."""
-        params: dict[str, str] = {}
-        if language is not None:
-            params["language"] = language
-        if topic is not None:
-            params["topic"] = topic
-        payload = self._get_json(_LEMMAS_PATH, params=params)
+        query: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> LemmaPage:
+        """Return one page of lemmas and the total match count."""
+        params: QueryParams = [("limit", str(limit)), ("offset", str(offset))]
+        for key, value in (("language", language), ("topic", topic), ("q", query)):
+            if value is not None:
+                params.append((key, value))
+        response = self._get(_LEMMAS_PATH, params=params)
+        payload = response.json()
         if not isinstance(payload, list):
             msg = f"Expected a list of lemmas, got {type(payload).__name__}."
             raise ContentServiceError(msg)
-        return [Lemma.model_validate(item) for item in payload]
+        lemmas = [Lemma.model_validate(item) for item in payload]
+        total = int(response.headers.get(_TOTAL_HEADER, len(lemmas)))
+        return LemmaPage(lemmas=lemmas, total=total)
 
     def get_lemma_by_id(self, lemma_id: str) -> Lemma | None:
         """Return a single lemma by its deterministic id, or None if absent."""
-        try:
-            response = self._client.get(f"{_LEMMAS_PATH}/{lemma_id}")
-        except httpx.HTTPError as exc:
-            msg = f"Failed to reach lang-tools service: {exc}"
-            raise ContentServiceError(msg) from exc
-        if response.status_code == httpx.codes.NOT_FOUND:
+        response = self._get(f"{_LEMMAS_PATH}/{lemma_id}", missing_ok=True)
+        if response is None:
             return None
-        self._raise_for_status(response)
         return Lemma.model_validate(response.json())
 
-    def _get_json(self, path: str, *, params: Mapping[str, str]) -> object:
-        """Issue a GET and return the decoded JSON body.
+    @overload
+    def _get(
+        self,
+        path: str,
+        *,
+        params: QueryParams | None = None,
+        missing_ok: Literal[False] = False,
+    ) -> httpx.Response: ...
+
+    @overload
+    def _get(
+        self,
+        path: str,
+        *,
+        params: QueryParams | None = None,
+        missing_ok: Literal[True],
+    ) -> httpx.Response | None: ...
+
+    def _get(
+        self,
+        path: str,
+        *,
+        params: QueryParams | None = None,
+        missing_ok: bool = False,
+    ) -> httpx.Response | None:
+        """Issue a GET and return the successful response.
+
+        Args:
+            path: Path under the service base URL.
+            params: Query parameters (a list of pairs, so keys can repeat).
+            missing_ok: Return None on a 404 instead of raising.
+
+        Returns:
+            The 2xx response, or None for a 404 when ``missing_ok``.
 
         Raises:
             ContentServiceError: When the request fails or returns a non-2xx
-                status.
+                status (other than an allowed 404).
         """
         try:
-            response = self._client.get(path, params=params)
+            # A tuple, not the list: httpx's params type is a covariant sequence.
+            response = self._client.get(path, params=tuple(params or ()))
         except httpx.HTTPError as exc:
             msg = f"Failed to reach lang-tools service: {exc}"
             raise ContentServiceError(msg) from exc
+        if missing_ok and response.status_code == httpx.codes.NOT_FOUND:
+            return None
         self._raise_for_status(response)
-        return response.json()
+        return response
 
     @staticmethod
     def _raise_for_status(response: httpx.Response) -> None:
@@ -127,3 +199,19 @@ class HttpContentSource(ContentSource):
     def close(self) -> None:
         """Close the underlying HTTP client."""
         self._client.close()
+
+
+def _card_params(query: CardQuery) -> QueryParams:
+    """Encode a `CardQuery` as repeated-key query parameters.
+
+    Only fields that differ from their defaults are sent, so the service applies
+    its own defaults; list fields become one pair per item, booleans the
+    lowercase ``true`` / ``false`` FastAPI parses.
+    """
+    params: QueryParams = []
+    for key, value in query.model_dump(exclude_defaults=True).items():
+        items = value if isinstance(value, list) else [value]
+        for item in items:
+            text = str(item).lower() if isinstance(item, bool) else str(item)
+            params.append((key, text))
+    return params

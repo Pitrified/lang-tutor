@@ -1,7 +1,9 @@
 """Tests for the HTTP content source using a mocked transport."""
 
 import httpx
-from lang_tools.lexicon.lemma import Lemma
+from lang_tools.lexicon import CardQuery
+from lang_tools.lexicon import Lemma
+from lang_tools.lexicon import LemmaCard
 import pytest
 
 from lang_tutor.content.http import ContentServiceError
@@ -9,39 +11,56 @@ from lang_tutor.content.http import HttpContentSource
 
 _BASE_URL = "http://lang-tools.test"
 
-_CASA = Lemma(text="casa", language="pt", translations={"en": "house"})
+_CASA = Lemma(text="casa", language="pt")
 _AGUA = Lemma(text="água", language="pt", topics=["food"])
 _LEMMAS = [_CASA, _AGUA]
 _BY_ID = {lemma.id: lemma for lemma in _LEMMAS}
+_CARDS = {
+    lemma.id: LemmaCard(lemma=lemma, cefr_level="A1", translations={"en": ["x"]})
+    for lemma in _LEMMAS
+}
+
+#: Every request the mock saw, for asserting on the encoded query string.
+_SEEN: list[httpx.Request] = []
 
 
 def _handler(request: httpx.Request) -> httpx.Response:
-    """Mimic the lang-tools lemma read API."""
+    """Mimic the lang-tools lemma and card read API."""
+    _SEEN.append(request)
     path = request.url.path
+    params = request.url.params
     if path == "/api/v1/lemmas":
-        language = request.url.params.get("language")
-        topic = request.url.params.get("topic")
         lemmas = _LEMMAS
-        if language:
-            lemmas = [lemma for lemma in lemmas if lemma.language == language]
-        if topic:
-            lemmas = [lemma for lemma in lemmas if topic in lemma.topics]
+        if params.get("language"):
+            lemmas = [lem for lem in lemmas if lem.language == params["language"]]
+        if params.get("topic"):
+            lemmas = [lem for lem in lemmas if params["topic"] in lem.topics]
+        total = len(lemmas)
+        offset = int(params.get("offset", 0))
+        lemmas = lemmas[offset : offset + int(params.get("limit", 100))]
         return httpx.Response(
             200,
             json=[lemma.model_dump(mode="json") for lemma in lemmas],
+            headers={"X-Total-Count": str(total)},
         )
-    prefix = "/api/v1/lemmas/"
-    if path.startswith(prefix):
-        lemma_id = path.removeprefix(prefix)
-        lemma = _BY_ID.get(lemma_id)
-        if lemma is None:
-            return httpx.Response(404, json={"detail": f"Lemma not found: {lemma_id}"})
-        return httpx.Response(200, json=lemma.model_dump(mode="json"))
+    if path == "/api/v1/cards":
+        limit = int(params.get("limit", 50))
+        cards = list(_CARDS.values())[:limit]
+        return httpx.Response(
+            200, json=[card.model_dump(mode="json") for card in cards]
+        )
+    for prefix, table in (("/api/v1/lemmas/", _BY_ID), ("/api/v1/cards/", _CARDS)):
+        if path.startswith(prefix):
+            item = table.get(path.removeprefix(prefix))
+            if item is None:
+                return httpx.Response(404, json={"detail": "not found"})
+            return httpx.Response(200, json=item.model_dump(mode="json"))
     return httpx.Response(404)
 
 
 def _make_source() -> HttpContentSource:
     """Build an HTTP content source wired to the mock transport."""
+    _SEEN.clear()
     client = httpx.Client(
         base_url=_BASE_URL,
         transport=httpx.MockTransport(_handler),
@@ -49,19 +68,51 @@ def _make_source() -> HttpContentSource:
     return HttpContentSource(base_url=_BASE_URL, client=client)
 
 
-def test_get_lemmas_filtered_parses_lemmas() -> None:
-    """The source parses the JSON list into Lemma models."""
+def test_get_cards_parses_cards() -> None:
+    """The JSON list is parsed into LemmaCard models."""
     source = _make_source()
-    lemmas = source.get_lemmas_filtered()
-    assert {lemma.text for lemma in lemmas} == {"casa", "água"}
-    assert all(isinstance(lemma, Lemma) for lemma in lemmas)
+    cards = source.get_cards(CardQuery(language="pt", limit=1))
+    assert len(cards) == 1
+    assert isinstance(cards[0], LemmaCard)
+    assert cards[0].lemma.text == "casa"
 
 
-def test_get_lemmas_filtered_passes_filters() -> None:
-    """Language and topic filters are forwarded as query params."""
+def test_card_query_is_encoded_with_repeated_keys() -> None:
+    """Only non-default fields are sent; lists repeat the key; bools lowercase."""
     source = _make_source()
-    by_topic = source.get_lemmas_filtered(topic="food")
-    assert [lemma.text for lemma in by_topic] == ["água"]
+    source.get_cards(
+        CardQuery(
+            language="pt",
+            single_word=True,
+            max_cefr="B1",
+            translation_languages=["en", "it"],
+        ),
+    )
+    sent = _SEEN[-1].url.params
+    assert sent.get_list("translation_languages") == ["en", "it"]
+    assert sent["single_word"] == "true"
+    assert sent["max_cefr"] == "B1"
+    assert "order" not in sent  # a default is left to the service
+
+
+def test_get_card_found_and_missing() -> None:
+    """A known id resolves to its card; a 404 maps to None."""
+    source = _make_source()
+    card = source.get_card(_CASA.id, translation_languages=["en", "it"])
+    assert card is not None
+    assert card.lemma.text == "casa"
+    assert _SEEN[-1].url.params.get_list("translation_languages") == ["en", "it"]
+    assert source.get_card("nope") is None
+
+
+def test_get_lemma_page_reads_the_total_header() -> None:
+    """The page is parsed and its total comes from X-Total-Count."""
+    source = _make_source()
+    page = source.get_lemma_page(language="pt", limit=1)
+    assert [lemma.text for lemma in page.lemmas] == ["casa"]
+    assert page.total == 2
+    by_topic = source.get_lemma_page(topic="food")
+    assert [lemma.text for lemma in by_topic.lemmas] == ["água"]
 
 
 def test_get_lemma_by_id_found() -> None:
@@ -90,7 +141,9 @@ def test_server_error_raises() -> None:
     )
     source = HttpContentSource(base_url=_BASE_URL, client=client)
     with pytest.raises(ContentServiceError):
-        source.get_lemmas_filtered()
+        source.get_cards(CardQuery())
+    with pytest.raises(ContentServiceError):
+        source.get_card("anything")
 
 
 def test_connection_error_raises() -> None:
