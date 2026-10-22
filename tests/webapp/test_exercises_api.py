@@ -28,6 +28,7 @@ from .conftest import _TEMPLATES_DIR
 #: (pt, en, gloss, cefr) for each fixture concept.
 _WORDS = (
     ("casa", "house", "a building to live in", "A1"),
+    ("lar", "home", "a building to live in", "A1"),
     ("livro", "book", "a written work", "A1"),
     ("água", "water", "a clear liquid", "A1"),
     ("porta", "door", "a movable barrier", "A2"),
@@ -45,7 +46,8 @@ def _store() -> LexiconStore:
     senses: list[Sense] = []
     for index, (pt, en, gloss, level) in enumerate(_WORDS):
         cid = f"c__{en.lower()}__{index:012x}"
-        examples = {"pt": [_SENTENCE]} if pt == "casa" else {}
+        # lar's concept shares the example, which does not use "lar".
+        examples = {"pt": [_SENTENCE]} if pt in {"casa", "lar"} else {}
         concepts.append(Concept(id=cid, definitions={"en": gloss}, examples=examples))
         for text, language in ((pt, "pt"), (en, "en")):
             lemma = Lemma(text=text, language=language, part_of_speech="noun")
@@ -155,8 +157,9 @@ def test_sentence_reconstruction_round(
     authenticated_client: TestClient,
     mock_session_data: SessionData,
 ) -> None:
-    """The prompt names the drilled lemma; one submit finishes the round."""
+    """The sentence uses the drilled lemma; one submit finishes the round."""
     data = _post(authenticated_client, "sentence-reconstruction/start")
+    assert "lar" not in data["translation"]  # its shared example names casa
     assert "casa" in data["translation"]
     assert "house" in data["translation"]
     words: list[str] = _SENTENCE.split()
@@ -177,7 +180,7 @@ def test_lemma_list_is_paged_and_searchable(
 ) -> None:
     page = authenticated_client.get("/lemmas/", params={"language": "pt"})
     assert page.status_code == 200
-    assert "of 6 lemma(s)" in page.text
+    assert "of 7 lemma(s)" in page.text
     partial = authenticated_client.get("/lemmas/partial", params={"q": "agu"})
     assert "água" in partial.text
     assert "casa" not in partial.text

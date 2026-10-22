@@ -55,6 +55,15 @@ _PAIR_SPARES = 3
 #: Fewest pairs a pair-matching round is worth playing with.
 _MIN_PAIRS = 2
 
+#: Shortest drill word: keeps letter names and particles (fr "p") out of the
+#: pair-matching and diacritic rounds.
+_MIN_WORD_LENGTH = 3
+
+#: Sentence candidates drawn per round, so one whose example actually uses the
+#: drilled lemma can be picked (a concept's examples are shared by all of its
+#: lemmas, and a sentence for "casa" says nothing about "lar").
+_SENTENCE_CANDIDATES = 8
+
 
 class NoRoundContentError(HTTPException):
     """A 400 raised when the corpus has nothing to build a round from."""
@@ -152,6 +161,7 @@ async def pair_matching_start(
         translation_languages=[body.target_language],
         require_translation=True,
         single_word=True,
+        min_length=_MIN_WORD_LENGTH,
         max_cefr=body.max_cefr,
     )
     cards = _draw(user, query, body.num_lemmas + _PAIR_SPARES)
@@ -282,6 +292,7 @@ async def diacritic_start(
         translation_languages=[body.hint_language],
         accented_only=True,
         single_word=True,
+        min_length=_MIN_WORD_LENGTH,
         max_cefr=body.max_cefr,
     )
     cards = _draw(user, query, 1)
@@ -358,11 +369,11 @@ async def reconstruction_start(
         require_example=True,
         max_cefr=body.max_cefr,
     )
-    cards = _draw(user, query, 1)
-    if not cards:
+    picked = _sentence_using_lemma(_draw(user, query, _SENTENCE_CANDIDATES))
+    if picked is None:
         missing = f"example sentences for {body.language}"
         raise NoRoundContentError(missing)
-    card = cards[0]
+    card, sentence = picked
     exercise = SentenceReconstructionExercise(
         progress_callback=get_progress_service().recorder(
             user.user_id,
@@ -370,7 +381,7 @@ async def reconstruction_start(
         ),
     )
     round_ = exercise.start(
-        sentence=card.examples[0],
+        sentence=sentence,
         translation=_sentence_hint(card, body.hint_language),
         lemma_id=card.lemma.id,
     )
@@ -412,6 +423,24 @@ async def reconstruction_submit(
             "answer": " ".join(round_.expected),
         },
     )
+
+
+def _sentence_using_lemma(cards: list[LemmaCard]) -> tuple[LemmaCard, str] | None:
+    """Return the first card with an example that contains its lemma's text.
+
+    The match is a case-folded substring, so an inflected form that starts
+    with the lemma (pt "casas") still counts. When no example names its
+    lemma, the first card's first example is used.
+    """
+    for card in cards:
+        needle = card.lemma.text.casefold()
+        for sentence in card.examples:
+            if needle in sentence.casefold():
+                return card, sentence
+    for card in cards:
+        if card.examples:
+            return card, card.examples[0]
+    return None
 
 
 def _sentence_hint(card: LemmaCard, hint_language: str) -> str:
