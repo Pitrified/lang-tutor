@@ -1,7 +1,12 @@
 """Pair matching exercise (from `brazilian-bites`).
 
-Given N lemmas, the user matches each one to its translation drawn from a
-shuffled column. Each `submit` call evaluates a single ``(left, right)`` tap.
+Given N drill cards, the user matches each lemma to its translation drawn from
+a shuffled column. Each `submit` call evaluates a single ``(left, right)`` tap.
+
+The translation is the most frequent target-language lemma of the card's best
+sense (`LemmaCard.translations`). Two cards that would show the same right-hand
+word make the round ambiguous, so a card takes its next translation instead,
+and a card with no unused translation left is dropped from the round.
 """
 
 from __future__ import annotations
@@ -17,17 +22,18 @@ from lang_tutor.exercises.base import RoundResult
 from lang_tutor.exercises.base import _BaseExercise
 
 if TYPE_CHECKING:
-    from lang_tools.lexicon.lemma import Lemma
+    from lang_tools.lexicon import Lemma
+    from lang_tools.lexicon import LemmaCard
 
 
 class MissingTranslationError(KeyError):
-    """Raised when a lemma does not carry a translation in the target language."""
+    """Raised when no card carries a usable translation in the target language."""
 
     def __init__(self, lemma: Lemma, target_language: str) -> None:
         """Initialize with the offending lemma and the missing target language.
 
         Args:
-            lemma: The `Lemma` that lacks a translation.
+            lemma: The lemma that lacks a translation.
             target_language: Target ISO 639-1 code that was requested.
         """
         super().__init__(
@@ -58,7 +64,8 @@ class PairMatchingExercise(_BaseExercise):
         """Initialize with the translation language and an optional RNG.
 
         Args:
-            target_language: ISO 639-1 code used to look up `Lemma.translations`.
+            target_language: ISO 639-1 code used to look up
+                `LemmaCard.translations`.
             rng: Optional `random.Random`; defaults to `random.SystemRandom`.
             **kwargs: Forwarded to `_BaseExercise`.
         """
@@ -66,30 +73,46 @@ class PairMatchingExercise(_BaseExercise):
         self.target_language = target_language
         self.rng = rng or random.SystemRandom()
 
-    def start(self, lemmas: list[Lemma]) -> ExerciseRound:
-        """Build a round from a list of lemmas.
+    def start(
+        self,
+        cards: list[LemmaCard],
+        *,
+        num_pairs: int | None = None,
+    ) -> ExerciseRound:
+        """Build a round from a list of drill cards.
 
         Args:
-            lemmas: The lemmas to match. Each must have a translation in
-                `target_language`.
+            cards: Candidate cards, in draw order. Pass a few more than
+                ``num_pairs`` so a dropped card does not shrink the round.
+            num_pairs: Stop once this many pairs are built; every usable card
+                when None.
 
         Returns:
             `ExerciseRound` whose `prompt` carries the left/right columns and
             `expected` the correct mapping ``{left_text: right_text}``.
 
         Raises:
-            MissingTranslationError: When any lemma lacks a translation in
-                `target_language`.
+            MissingTranslationError: When no card yields a pair (every card
+                lacks an unused translation in `target_language`).
         """
         self._ensure_started()
         pairs: dict[str, str] = {}
         lemma_by_text: dict[str, Lemma] = {}
-        for lemma in lemmas:
-            translation = lemma.translations.get(self.target_language)
+        used: set[str] = set()
+        for card in cards:
+            if num_pairs is not None and len(pairs) >= num_pairs:
+                break
+            if card.lemma.text in pairs:
+                continue
+            options = card.translations.get(self.target_language, [])
+            translation = next((t for t in options if t.casefold() not in used), None)
             if translation is None:
-                raise MissingTranslationError(lemma, self.target_language)
-            pairs[lemma.text] = translation
-            lemma_by_text[lemma.text] = lemma
+                continue
+            used.add(translation.casefold())
+            pairs[card.lemma.text] = translation
+            lemma_by_text[card.lemma.text] = card.lemma
+        if not pairs:
+            raise MissingTranslationError(cards[0].lemma, self.target_language)
 
         right_column = list(pairs.values())
         self.rng.shuffle(right_column)

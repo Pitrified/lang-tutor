@@ -7,7 +7,7 @@ from lang_tutor.exercises.wordle import _evaluate
 
 
 def _lemma(text: str = "amor") -> Lemma:
-    return Lemma(text=text, language="pt", part_of_speech="noun", frequency="medium")
+    return Lemma(text=text, language="pt", part_of_speech="noun")
 
 
 def test_evaluate_marks_correct_misplaced_wrong() -> None:

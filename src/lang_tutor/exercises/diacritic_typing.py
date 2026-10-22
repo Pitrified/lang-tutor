@@ -20,7 +20,8 @@ from lang_tutor.exercises.base import RoundResult
 from lang_tutor.exercises.base import _BaseExercise
 
 if TYPE_CHECKING:
-    from lang_tools.lexicon.lemma import Lemma
+    from lang_tools.lexicon import Lemma
+    from lang_tools.lexicon import LemmaCard
 
 HintLevel = Literal["off", "show_unaccented", "show_all"]
 
@@ -60,21 +61,28 @@ class DiacriticTypingExercise(_BaseExercise):
 
     def start(
         self,
-        lemma: Lemma,
+        card: LemmaCard,
         *,
         hint_level: HintLevel = "off",
+        hint_language: str = "en",
     ) -> ExerciseRound:
         """Build a round for a single lemma.
 
+        The prompt carries the meaning hints: the card's gloss and its first
+        translation in ``hint_language``.
+
         Args:
-            lemma: Target lemma; must contain accented characters for the
-                exercise to be meaningful.
+            card: Drill card of the target lemma; the lemma must contain
+                accented characters for the exercise to be meaningful.
             hint_level: Initial hint level (see `HintLevel`).
+            hint_language: Language of the translation hint.
 
         Returns:
             `ExerciseRound` whose `expected` is the internal `_DiacriticState`.
         """
         self._ensure_started()
+        lemma = card.lemma
+        translations = card.translations.get(hint_language, [])
         state = _DiacriticState(
             lemma=lemma,
             hint_level=hint_level,
@@ -89,7 +97,8 @@ class DiacriticTypingExercise(_BaseExercise):
                 "display": state.display.copy(),
                 "hint_level": hint_level,
                 "disabled_keys": set(),
-                "glosses": [g.text for g in lemma.glosses],
+                "glosses": [card.gloss] if card.gloss else [],
+                "translation": translations[0] if translations else "",
             },
             expected=state,
         )
