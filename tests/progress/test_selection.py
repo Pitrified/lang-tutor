@@ -6,6 +6,7 @@ import random
 from lang_tools.lexicon import CardQuery
 from lang_tools.lexicon import Lemma
 from lang_tools.lexicon import LemmaCard
+from lang_tools.lexicon import LookalikeHint
 
 from lang_tutor.content.base import ContentSource
 from lang_tutor.content.base import LemmaPage
@@ -41,6 +42,7 @@ class _FakeSource(ContentSource):
         *,
         gloss_language: str = "en",  # noqa: ARG002
         translation_languages: Sequence[str] = ("en",),  # noqa: ARG002
+        known_languages: Sequence[str] = (),  # noqa: ARG002
     ) -> LemmaCard | None:
         return None
 
@@ -50,6 +52,7 @@ class _FakeSource(ContentSource):
         *,
         gloss_language: str = "en",  # noqa: ARG002
         translation_languages: Sequence[str] = ("en",),  # noqa: ARG002
+        known_languages: Sequence[str] = (),  # noqa: ARG002
     ) -> list[LemmaCard]:
         return []
 
@@ -90,6 +93,20 @@ def test_easier_band_weighs_more() -> None:
     )
     # No band scores neutral, between the two.
     assert compute_weight(_card("c", None), None, weights) == weights.unseen_multiplier
+
+
+def test_lookalikes_shift_the_weight() -> None:
+    weights = SelectionWeights()
+    plain = compute_weight(_card("lar"), None, weights)
+    trap = _card("esquisito")
+    trap.lookalikes = [LookalikeHint(language="en", text="exquisite", kind="full")]
+    free = _card("nação")
+    free.lookalikes = [LookalikeHint(language="it", text="nazione", kind="cognate")]
+    assert (
+        compute_weight(trap, None, weights)
+        > plain
+        > compute_weight(free, None, weights)
+    )
 
 
 def test_select_lemmas_returns_distinct() -> None:

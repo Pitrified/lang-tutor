@@ -100,7 +100,7 @@
         showFeedback("Correct match!", "is-success");
       } else {
         document.querySelectorAll(".button.is-info").forEach((b) => b.classList.remove("is-info"));
-        showFeedback("Not a match. Try again.", "is-danger");
+        showFeedback(d.feedback && d.feedback !== "Wrong pair." ? d.feedback : "Not a match. Try again.", "is-danger");
       }
 
       selectedLeft = null;

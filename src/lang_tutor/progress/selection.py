@@ -5,6 +5,10 @@ Merges the `brazilian-bites` and `go-accenter` heuristics:
 - Errors strongly boost weight.
 - Unseen lemmas receive the maximum priority.
 - Easier lemmas (by the best sense's CEFR band) get a mild bonus.
+- A false friend of a word the learner knows gets a mild bonus (worth
+  practising); a cognate of one gets a mild damping (free vocabulary). Both read
+  `LemmaCard.lookalikes`, so they apply when the card query names the learner's
+  known languages.
 - Recently-seen lemmas decay.
 - Lemmas flagged `is_useless` are excluded entirely.
 
@@ -60,6 +64,8 @@ class SelectionWeights:
         unseen_multiplier: Multiplier applied when `seen_count == 0`.
         recency_half_life_seconds: Time-to-half-weight after a recent encounter.
         level_factor: Per-CEFR-band multipliers.
+        trap_factor: Multiplier for a false friend of a known word.
+        cognate_factor: Multiplier for a cognate of a known word (no trap).
     """
 
     base: float = 1.0
@@ -69,6 +75,8 @@ class SelectionWeights:
     level_factor: dict[str, float] = field(
         default_factory=lambda: dict(_LEVEL_FACTOR),
     )
+    trap_factor: float = 1.3
+    cognate_factor: float = 0.7
 
 
 def compute_weight(
@@ -106,6 +114,12 @@ def compute_weight(
     # Level factor.
     if card.cefr_level is not None:
         weight *= weights.level_factor.get(card.cefr_level, 1.0)
+
+    # Look-alikes in the learner's known languages.
+    if card.is_trap:
+        weight *= weights.trap_factor
+    elif card.has_cognate:
+        weight *= weights.cognate_factor
 
     # Recency decay: halves every `recency_half_life_seconds` since last seen.
     if progress is not None and progress.last_seen_at is not None:

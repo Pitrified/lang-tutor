@@ -71,6 +71,7 @@ class ContentSource(ABC):
         *,
         gloss_language: str = "en",
         translation_languages: Sequence[str] = ("en",),
+        known_languages: Sequence[str] = (),
     ) -> LemmaCard | None:
         """Return the drill card of one lemma.
 
@@ -78,6 +79,8 @@ class ContentSource(ABC):
             lemma_id: The lemma's deterministic id.
             gloss_language: Language of the card's gloss.
             translation_languages: Languages to fill the translations with.
+            known_languages: The learner's known languages; the card(s) then
+                carry the lemma's look-alikes in them.
 
         Returns:
             The card, or None when no lemma has the given id.
@@ -90,6 +93,7 @@ class ContentSource(ABC):
         *,
         gloss_language: str = "en",
         translation_languages: Sequence[str] = ("en",),
+        known_languages: Sequence[str] = (),
     ) -> list[LemmaCard]:
         """Return one card per sense of a lemma, best sense first.
 
@@ -97,6 +101,8 @@ class ContentSource(ABC):
             lemma_id: The lemma's deterministic id.
             gloss_language: Language of each card's gloss.
             translation_languages: Languages to fill the translations with.
+            known_languages: The learner's known languages; the card(s) then
+                carry the lemma's look-alikes in them.
 
         Returns:
             The cards (empty for an unknown lemma or one with no sense).

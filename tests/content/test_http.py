@@ -102,10 +102,15 @@ def test_card_query_is_encoded_with_repeated_keys() -> None:
 def test_get_card_found_and_missing() -> None:
     """A known id resolves to its card; a 404 maps to None."""
     source = _make_source()
-    card = source.get_card(_CASA.id, translation_languages=["en", "it"])
+    card = source.get_card(
+        _CASA.id,
+        translation_languages=["en", "it"],
+        known_languages=["en", "it"],
+    )
     assert card is not None
     assert card.lemma.text == "casa"
     assert _SEEN[-1].url.params.get_list("translation_languages") == ["en", "it"]
+    assert _SEEN[-1].url.params.get_list("known_languages") == ["en", "it"]
     assert source.get_card("nope") is None
 
 

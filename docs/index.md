@@ -13,7 +13,9 @@ companion [`lang-tools`](https://github.com/Pitrified/lang-tools) library.
   diacritic typing, wordle, and a conversational tutor.
 - **Progress** - per-user `UserLemmaProgress` (in memory per session) and
   weighted selection over `lang-tools` drill cards (`LemmaCard`), drawn by CEFR
-  level.
+  level. Cards carry their look-alikes in the learner's known languages (false
+  friends and cognates), which shape selection, pair-matching decoys, and the
+  lemma page.
 - **Tutor chain** - an `llm-core` `StructuredLLMChain` producing a correction
   plus a conversation continuation.
 - **FastAPI webapp** - pages, runtime exercises API, Google OAuth (disabled in

@@ -30,6 +30,24 @@
       {% endif %}
     </div>
 
+    {% if traps or cognates %}
+    <div class="box">
+      <h2 class="title is-5">Looks like</h2>
+      {% for hint in traps %}
+      <div class="notification is-warning is-light py-3 mb-2">
+        <span class="tag is-warning mr-2">{{ 'false friend' if hint.kind == 'full' else 'partial false friend' }}</span>
+        <strong>{{ hint.language }} {{ hint.text }}</strong>{% if hint.note %} - {{ hint.note }}{% endif %}
+      </div>
+      {% endfor %}
+      {% for hint in cognates %}
+      <p class="mb-1">
+        <span class="tag is-success is-light mr-2">cognate</span>
+        <strong>{{ hint.language }} {{ hint.text }}</strong> - same meaning
+      </p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <h2 class="title is-4">Meanings</h2>
     {% for card in senses %}
     <div class="box">

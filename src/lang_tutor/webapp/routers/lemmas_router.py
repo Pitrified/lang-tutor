@@ -3,7 +3,8 @@
 Serves pages for browsing and viewing vocabulary lemmas. The list is a paged,
 prefix-searchable view over the `lang-tools` corpus (324k lemmas, so never the
 whole pool); the detail page shows every meaning of a lemma as one drill card
-per sense.
+per sense, plus its look-alikes in the learner's known languages: false
+friends as warnings, cognates as free vocabulary.
 """
 
 from typing import Annotated
@@ -17,6 +18,7 @@ from fastapi.responses import HTMLResponse
 from fastapi_tools.schemas.auth import SessionData
 
 from lang_tutor.content import get_content_source
+from lang_tutor.params.lang_tutor_params import get_learner_params
 from lang_tutor.webapp.core.auth import get_current_user
 
 router = APIRouter(prefix="/lemmas", tags=["lemmas"])
@@ -116,10 +118,13 @@ async def lemma_detail(
         source.get_sense_cards(
             lemma_id,
             translation_languages=[code for code, _ in LANGUAGES],
+            known_languages=get_learner_params().known_languages,
         )
         if lemma is not None
         else []
     )
+    # Look-alikes belong to the lemma, so every sense card carries the same list.
+    lookalikes = senses[0].lookalikes if senses else []
     templates = request.app.state.templates
     return templates.TemplateResponse(
         request,
@@ -130,5 +135,7 @@ async def lemma_detail(
             "lemma_id": lemma_id,
             "lemma": lemma,
             "senses": senses,
+            "traps": [hint for hint in lookalikes if hint.is_trap],
+            "cognates": [hint for hint in lookalikes if not hint.is_trap],
         },
     )

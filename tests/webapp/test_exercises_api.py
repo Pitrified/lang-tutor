@@ -13,6 +13,7 @@ from lang_tools.lexicon import LexiconStore
 from lang_tools.lexicon import Sense
 from lang_tools.lexicon.lemma_store import reset_store
 from lang_tools.lexicon.lemma_store import set_store
+from lang_tools.lexicon.relations import LookalikeRelation
 import pytest
 
 from lang_tutor.content import InProcessContentSource
@@ -38,6 +39,7 @@ _WORDS = (
 _SENTENCE: str = "A casa é grande."
 
 LEMMA_IDS = {pt: Lemma(text=pt, language="pt").id for pt, *_ in _WORDS}
+PORT_NOTE = 'pt "porta" means door; en "port" is "porto"'
 
 
 def _store() -> LexiconStore:
@@ -60,11 +62,29 @@ def _store() -> LexiconStore:
                     sense_frequency=4.0,
                 ),
             )
+    # Look-alikes toward the learner's known languages (en, it by default): pt
+    # porta is a false friend of en port, pt café a cognate of it caffè.
+    port = Lemma(text="port", language="en", part_of_speech="noun")
+    caffe = Lemma(text="caffè", language="it", part_of_speech="noun")
+    lemmas += [port, caffe]
+    lookalikes = [
+        LookalikeRelation(
+            lemma_id_a=LEMMA_IDS["porta"],
+            lemma_id_b=port.id,
+            kind="full",
+            explanation_notes={"en": PORT_NOTE},
+        ),
+        LookalikeRelation(
+            lemma_id_a=LEMMA_IDS["café"],
+            lemma_id_b=caffe.id,
+            kind="cognate",
+        ),
+    ]
     return LexiconStore.from_models(
         lemmas=lemmas,
         concepts=concepts,
         senses=senses,
-        lookalikes=[],
+        lookalikes=lookalikes,
         concept_relations=[],
         sense_relations=[],
     )
@@ -196,3 +216,34 @@ def test_lemma_detail_lists_meanings_and_translations(
     assert "A casa é grande." in page.text
     missing = authenticated_client.get("/lemmas/does-not-exist")
     assert "Lemma not found" in missing.text
+
+
+def test_pair_matching_adds_a_false_friend_decoy(
+    authenticated_client: TestClient,
+) -> None:
+    """With every pt word paired, porta's en false friend joins as a decoy."""
+    data = _post(authenticated_client, "pair-matching/start", {"num_lemmas": 6})
+    assert "porta" in data["left_lemmas"]
+    assert "port" in data["right_lemmas"]
+    assert len(data["right_lemmas"]) == len(data["left_lemmas"]) + 1
+    fooled = _post(
+        authenticated_client,
+        "pair-matching/submit",
+        {"left": "porta", "right": "port"},
+    )
+    assert fooled["correct"] is False
+    assert fooled["feedback"] == f"False friend! {PORT_NOTE}"
+
+
+def test_lemma_detail_shows_traps_and_cognates(
+    authenticated_client: TestClient,
+) -> None:
+    porta = authenticated_client.get(f"/lemmas/{LEMMA_IDS['porta']}")
+    assert "false friend" in porta.text
+    assert "en port" in porta.text
+    assert "porto" in porta.text
+    cafe = authenticated_client.get(f"/lemmas/{LEMMA_IDS['café']}")
+    assert "cognate" in cafe.text
+    assert "it caffè" in cafe.text
+    casa = authenticated_client.get(f"/lemmas/{LEMMA_IDS['casa']}")
+    assert "Looks like" not in casa.text

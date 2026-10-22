@@ -92,9 +92,14 @@ class HttpContentSource(ContentSource):
         *,
         gloss_language: str = "en",
         translation_languages: Sequence[str] = ("en",),
+        known_languages: Sequence[str] = (),
     ) -> LemmaCard | None:
         """Return the drill card of one lemma, or None if absent."""
-        params = _card_lookup_params(gloss_language, translation_languages)
+        params = _card_lookup_params(
+            gloss_language,
+            translation_languages,
+            known_languages,
+        )
         path = f"{_CARDS_PATH}/{lemma_id}"
         response = self._get(path, params=params, missing_ok=True)
         if response is None:
@@ -107,9 +112,14 @@ class HttpContentSource(ContentSource):
         *,
         gloss_language: str = "en",
         translation_languages: Sequence[str] = ("en",),
+        known_languages: Sequence[str] = (),
     ) -> list[LemmaCard]:
         """Return one card per sense of a lemma, best sense first."""
-        params = _card_lookup_params(gloss_language, translation_languages)
+        params = _card_lookup_params(
+            gloss_language,
+            translation_languages,
+            known_languages,
+        )
         payload = self._get(f"{_CARDS_PATH}/{lemma_id}/senses", params=params).json()
         if not isinstance(payload, list):
             msg = f"Expected a list of cards, got {type(payload).__name__}."
@@ -218,10 +228,12 @@ class HttpContentSource(ContentSource):
 def _card_lookup_params(
     gloss_language: str,
     translation_languages: Sequence[str],
+    known_languages: Sequence[str] = (),
 ) -> QueryParams:
-    """Encode the gloss and translation languages of a per-lemma card read."""
+    """Encode the languages of a per-lemma card read."""
     params: QueryParams = [("gloss_language", gloss_language)]
     params += [("translation_languages", lang) for lang in translation_languages]
+    params += [("known_languages", lang) for lang in known_languages]
     return params
 
 

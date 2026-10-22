@@ -4,6 +4,7 @@ import random
 
 from lang_tools.lexicon import Lemma
 from lang_tools.lexicon import LemmaCard
+from lang_tools.lexicon import LookalikeHint
 import pytest
 
 from lang_tutor.exercises.pair_matching import MissingTranslationError
@@ -61,3 +62,33 @@ def test_missing_translation_raises() -> None:
     ex = PairMatchingExercise(target_language="en", rng=random.Random(0))
     with pytest.raises(MissingTranslationError):
         ex.start([_card("amor", {"fr": ["amour"]})])
+
+
+def test_false_friend_decoy_joins_the_right_column() -> None:
+    """A known-language false friend becomes a decoy that teaches on a wrong tap."""
+    trap = _card("esquisito", {"en": ["weird"]})
+    trap.lookalikes = [
+        LookalikeHint(
+            language="en",
+            text="exquisite",
+            kind="full",
+            note='pt "esquisito" means weird',
+        ),
+        LookalikeHint(language="it", text="squisito", kind="full"),  # wrong side
+    ]
+    cards = [trap, _card("paz", {"en": ["peace"]})]
+    ex = PairMatchingExercise(target_language="en", rng=random.Random(0))
+    round_ = ex.start(cards, max_decoys=1)
+    assert sorted(round_.prompt["right_lemmas"]) == ["exquisite", "peace", "weird"]
+    fooled = ex.submit(round_, ("esquisito", "exquisite"))
+    assert not fooled.correct
+    assert fooled.feedback == 'False friend! pt "esquisito" means weird'
+    other = ex.submit(round_, ("paz", "exquisite"))
+    assert other.feedback == "Wrong pair."
+
+
+def test_no_decoys_unless_asked() -> None:
+    trap = _card("esquisito", {"en": ["weird"]})
+    trap.lookalikes = [LookalikeHint(language="en", text="exquisite", kind="full")]
+    ex = PairMatchingExercise(target_language="en", rng=random.Random(0))
+    assert ex.start([trap]).prompt["right_lemmas"] == ["weird"]

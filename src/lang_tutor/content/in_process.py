@@ -40,12 +40,14 @@ class InProcessContentSource(ContentSource):
         *,
         gloss_language: str = "en",
         translation_languages: Sequence[str] = ("en",),
+        known_languages: Sequence[str] = (),
     ) -> LemmaCard | None:
         """Return the drill card of one lemma, or None if absent."""
         return lemma_card(
             lemma_id,
             gloss_language=gloss_language,
             translation_languages=translation_languages,
+            known_languages=known_languages,
         )
 
     def get_sense_cards(
@@ -54,12 +56,14 @@ class InProcessContentSource(ContentSource):
         *,
         gloss_language: str = "en",
         translation_languages: Sequence[str] = ("en",),
+        known_languages: Sequence[str] = (),
     ) -> list[LemmaCard]:
         """Return one card per sense of a lemma, best sense first."""
         return lemma_sense_cards(
             lemma_id,
             gloss_language=gloss_language,
             translation_languages=translation_languages,
+            known_languages=known_languages,
         )
 
     def get_lemma_page(

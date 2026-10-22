@@ -49,6 +49,34 @@ A `CardQuery` filters the sample on the `lang-tools` side. The filters are:
 The order is random (seedable) or by frequency, and a query returns at most 500
 cards.
 
+## The learner and look-alikes
+
+`LearnerParams` holds the learner profile: the language being learned
+(`LANG_TUTOR_TARGET_LANGUAGE`, default `pt`) and the languages they already know
+(`LANG_TUTOR_KNOWN_LANGUAGES`, comma-separated, default `en,it`). Every card read
+passes the known languages, so each card carries its **look-alikes** in them
+(`LemmaCard.lookalikes`, phase 11 in `lang-tools`). A pt word then falls in one of
+three cases:
+
+- **A trap:** a false friend of a known word (pt *esquisito* / en *exquisite*).
+  `card.is_trap` is true, and the hint carries an English note.
+- **Free:** a cognate of a known word (pt *nação* / it *nazione*).
+  `card.has_cognate` is true.
+- **Neither.**
+
+The look-alike edges are pairwise, and this view is a read-time union over the
+known languages, so adding a language to the list needs no other change.
+
+How the tutor uses them:
+
+- **Selection** gives a trap a mild bonus (`trap_factor` 1.3, worth practising) and
+  a cognate a mild damping (`cognate_factor` 0.7, free vocabulary).
+- **Pair matching** adds up to one false-friend decoy to the right column: en
+  *exquisite* next to pt *esquisito*. It matches nothing, and tapping it for its
+  look-alike shows the trap note.
+- **The lemma page** shows a "Looks like" box, with false friends as warnings and
+  cognates as "same meaning".
+
 ## How a round is built
 
 `lang_tutor.progress.draw_cards` asks the source for a random window of four

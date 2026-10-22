@@ -7,7 +7,10 @@ Every round is built from `lang-tools` drill cards (`LemmaCard`): a bounded
 `CardQuery` per round, weighted by the user's session progress through
 `draw_cards`, never a whole language. Each exercise reports its lemma results
 to the session progress service, so the next draw prefers unseen and missed
-lemmas. The learner's level is the request's ``max_cefr`` (B1 by default).
+lemmas. The learner's level is the request's ``max_cefr`` (B1 by default), and
+every card query names the learner's known languages (`LearnerParams`), so
+cards carry their look-alikes: selection favours false friends, damps cognates,
+and pair matching may add a false-friend decoy.
 """
 
 from __future__ import annotations
@@ -33,6 +36,7 @@ from lang_tutor.exercises.pair_matching import MissingTranslationError
 from lang_tutor.exercises.pair_matching import PairMatchingExercise
 from lang_tutor.exercises.sentence_reconstruction import SentenceReconstructionExercise
 from lang_tutor.exercises.wordle import WordleExercise
+from lang_tutor.params.lang_tutor_params import get_learner_params
 from lang_tutor.progress.selection import draw_cards
 from lang_tutor.webapp.core.auth import get_current_user
 from lang_tutor.webapp.services.progress_service import get_progress_service
@@ -54,6 +58,9 @@ _PAIR_SPARES = 3
 
 #: Fewest pairs a pair-matching round is worth playing with.
 _MIN_PAIRS = 2
+
+#: False-friend decoys added to a pair-matching round's right column (phase 11).
+_MAX_DECOYS = 1
 
 #: Shortest drill word: keeps letter names and particles (fr "p") out of the
 #: pair-matching and diacritic rounds.
@@ -157,6 +164,7 @@ async def pair_matching_start(
     """Start a new pair matching round from drill cards."""
     query = CardQuery(
         language=body.language,
+        known_languages=get_learner_params().known_languages,
         translation_languages=[body.target_language],
         require_translation=True,
         single_word=True,
@@ -172,7 +180,11 @@ async def pair_matching_start(
         ),
     )
     try:
-        round_ = exercise.start(cards, num_pairs=body.num_lemmas) if cards else None
+        round_ = (
+            exercise.start(cards, num_pairs=body.num_lemmas, max_decoys=_MAX_DECOYS)
+            if cards
+            else None
+        )
     except MissingTranslationError:
         round_ = None
     if round_ is None or len(round_.prompt["left_lemmas"]) < _MIN_PAIRS:
@@ -213,7 +225,12 @@ async def pair_matching_submit(
     result = exercise.submit(round_, (body.left, body.right))
     return ExerciseResponse(
         status="ok",
-        data={"correct": result.correct, "left": body.left, "right": body.right},
+        data={
+            "correct": result.correct,
+            "left": body.left,
+            "right": body.right,
+            "feedback": result.feedback,
+        },
     )
 
 
@@ -225,6 +242,7 @@ async def wordle_start(
     """Start a new wordle game around a level-appropriate single word."""
     query = CardQuery(
         language=body.language,
+        known_languages=get_learner_params().known_languages,
         length=body.word_length,
         single_word=True,
         max_cefr=body.max_cefr,
@@ -287,6 +305,7 @@ async def diacritic_start(
     """Start a new diacritic typing round on an accented single word."""
     query = CardQuery(
         language=body.language,
+        known_languages=get_learner_params().known_languages,
         gloss_language=body.hint_language,
         translation_languages=[body.hint_language],
         accented_only=True,
@@ -363,6 +382,7 @@ async def reconstruction_start(
     """
     query = CardQuery(
         language=body.language,
+        known_languages=get_learner_params().known_languages,
         gloss_language=body.hint_language,
         translation_languages=[body.hint_language],
         require_example=True,
