@@ -59,10 +59,9 @@ _MIN_PAIRS = 2
 #: pair-matching and diacritic rounds.
 _MIN_WORD_LENGTH = 3
 
-#: Sentence candidates drawn per round, so one whose example actually uses the
-#: drilled lemma can be picked (a concept's examples are shared by all of its
-#: lemmas, and a sentence for "casa" says nothing about "lar").
-_SENTENCE_CANDIDATES = 8
+#: Sentence candidates drawn per round. The query already asks for an example
+#: that names the lemma; the window leaves room to pick the sentence itself.
+_SENTENCE_CANDIDATES = 4
 
 
 class NoRoundContentError(HTTPException):
@@ -367,6 +366,9 @@ async def reconstruction_start(
         gloss_language=body.hint_language,
         translation_languages=[body.hint_language],
         require_example=True,
+        # A concept's examples are shared by all of its lemmas: a sentence for
+        # "casa" says nothing about "lar".
+        example_mentions_lemma=True,
         max_cefr=body.max_cefr,
     )
     picked = _sentence_using_lemma(_draw(user, query, _SENTENCE_CANDIDATES))
@@ -428,9 +430,11 @@ async def reconstruction_submit(
 def _sentence_using_lemma(cards: list[LemmaCard]) -> tuple[LemmaCard, str] | None:
     """Return the first card with an example that contains its lemma's text.
 
-    The match is a case-folded substring, so an inflected form that starts
-    with the lemma (pt "casas") still counts. When no example names its
-    lemma, the first card's first example is used.
+    The card query already keeps cards with such an example; this picks the
+    sentence itself among the concept's examples. The match is a case-folded
+    substring, so an inflected form that starts with the lemma (pt "casas")
+    still counts. When no example names its lemma, the first card's first
+    example is used.
     """
     for card in cards:
         needle = card.lemma.text.casefold()
