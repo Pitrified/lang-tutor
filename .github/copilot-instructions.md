@@ -21,7 +21,7 @@ uv run mkdocs serve                  # MkDocs local docs server
 uvicorn lang_tutor.webapp.app:app --reload
 ```
 
-`lang-tools` is pinned in `pyproject.toml` as `lang-tools @ git+...@main` but overridden for local dev by an editable `[tool.uv.sources]` path to `../lang-tools`; the content (words CSVs in `lang-tools/data/`) is read from that checkout in-process.
+`lang-tools` is pinned in `pyproject.toml` as `lang-tools @ git+...@main` but overridden for local dev by an editable `[tool.uv.sources]` path to `../lang-tools`; content comes from the `lang-tools` read service over HTTP by default (`LANG_TOOLS_CONTENT_SOURCE=http`), or in-process from that checkout's Parquet corpus (`in_process`). Exercises are built from `lang_tools.lexicon.LemmaCard` drill cards via bounded `CardQuery` reads; see `docs/guides/content_source.md`.
 
 Credentials live at `~/cred/lang-tutor/.env` (loaded by `load_env()` in `src/lang_tutor/params/load_env.py`).
 
@@ -41,7 +41,7 @@ Domain layers (the tutoring concerns, all consuming `lang-tools` content):
 | Layer        | Path                              | Role                                                                |
 | ------------ | --------------------------------- | ------------------------------------------------------------------- |
 | Exercises    | `src/lang_tutor/exercises/`       | The five mechanics (sentence reconstruction, pair matching, diacritic typing, wordle, conversational tutor) + round/result protocol |
-| Progress     | `src/lang_tutor/progress/`        | `UserWordProgress`, `compute_weight`, weighted `select_words` over the `lang-tools` word pool |
+| Progress     | `src/lang_tutor/progress/`        | `UserLemmaProgress`, `compute_weight`, weighted `select_lemmas` / `draw_cards` over `lang-tools` drill cards (`LemmaCard`) |
 | LLM (tutor)  | `src/lang_tutor/llm/`             | `build_tutor_chain` (interactive correction + conversation), prompt at `src/lang_tutor/prompts/tutor_response/` |
 | Webapp       | `src/lang_tutor/webapp/`          | FastAPI `build_app()`, pages, runtime exercises API, OAuth/auth, services, session state |
 
