@@ -18,12 +18,9 @@ site/
 
 # app
 instance/
-static/css/*
-static/js/*
-static/img/*
-static/swagger/*
-!static/css/app.css
-!static/img/logo.svg
+# static/css, static/js and static/img hold app code and are committed; the
+# Swagger UI and the other vendor assets come from fastapi-tools at runtime.
+static/swagger/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
