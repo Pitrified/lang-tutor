@@ -64,7 +64,7 @@ def _store() -> LexiconStore:
         lemmas=lemmas,
         concepts=concepts,
         senses=senses,
-        false_friends=[],
+        lookalikes=[],
         concept_relations=[],
         sense_relations=[],
     )

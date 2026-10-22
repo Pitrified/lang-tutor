@@ -31,7 +31,7 @@ def _fixture_store() -> Generator[None]:
                 Sense(lemma_id=_CASA.id, concept_id=C_HOUSE, cefr_level="A1"),
                 Sense(lemma_id=_HOUSE.id, concept_id=C_HOUSE, cefr_level="A1"),
             ],
-            false_friends=[],
+            lookalikes=[],
             concept_relations=[],
             sense_relations=[],
         ),
