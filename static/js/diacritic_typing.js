@@ -51,8 +51,12 @@
       renderKeyboard(["á", "à", "â", "ã", "é", "ê", "í", "ó", "ô", "õ", "ú", "ç"]);
       hideMessage();
 
-      const trans = document.getElementById("word-translation");
-      if (trans) trans.textContent = data.data.translation || "";
+      // Meaning hint: the translation, then the gloss of the word's best sense.
+      const hint = document.getElementById("word-glosses");
+      if (hint) {
+        const parts = [data.data.translation, ...(data.data.glosses || [])];
+        hint.textContent = parts.filter(Boolean).join(" - ");
+      }
     } else {
       const wordDisplay = document.getElementById("word-display");
       if (wordDisplay) {
@@ -142,14 +146,14 @@
   }
 
   function showMessage(text, cls) {
-    const msg = document.getElementById("diacritic-message");
+    const msg = document.getElementById("typing-feedback");
     if (!msg) return;
     msg.textContent = text;
     msg.className = "notification " + cls;
   }
 
   function hideMessage() {
-    const msg = document.getElementById("diacritic-message");
+    const msg = document.getElementById("typing-feedback");
     if (msg) msg.className = "notification is-hidden";
   }
 })();
