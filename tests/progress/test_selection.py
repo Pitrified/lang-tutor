@@ -44,6 +44,15 @@ class _FakeSource(ContentSource):
     ) -> LemmaCard | None:
         return None
 
+    def get_sense_cards(
+        self,
+        lemma_id: str,  # noqa: ARG002
+        *,
+        gloss_language: str = "en",  # noqa: ARG002
+        translation_languages: Sequence[str] = ("en",),  # noqa: ARG002
+    ) -> list[LemmaCard]:
+        return []
+
     def get_lemma_page(self, **_kwargs: object) -> LemmaPage:
         return LemmaPage(lemmas=[], total=0)
 

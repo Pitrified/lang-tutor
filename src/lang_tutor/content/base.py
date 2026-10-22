@@ -7,9 +7,10 @@ transport is a one-line change in the factory, not a change at every call site.
 
 Two kinds of read go through it:
 
-- **Drill cards** (`get_cards`, `get_card`): a lemma with its best sense's CEFR
-  band, gloss, translations, and examples (`lang_tools.lexicon.LemmaCard`). The
-  exercises are built from these; a `CardQuery` keeps every read bounded.
+- **Drill cards** (`get_cards`, `get_card`, `get_sense_cards`): a lemma with
+  its best sense's CEFR band, gloss, translations, and examples
+  (`lang_tools.lexicon.LemmaCard`), or one card per sense. The exercises are
+  built from these; a `CardQuery` keeps every read bounded.
 - **Lemma pages** (`get_lemma_page`, `get_lemma_by_id`): the paged browse /
   search behind the lemma pages.
 
@@ -80,6 +81,25 @@ class ContentSource(ABC):
 
         Returns:
             The card, or None when no lemma has the given id.
+        """
+
+    @abstractmethod
+    def get_sense_cards(
+        self,
+        lemma_id: str,
+        *,
+        gloss_language: str = "en",
+        translation_languages: Sequence[str] = ("en",),
+    ) -> list[LemmaCard]:
+        """Return one card per sense of a lemma, best sense first.
+
+        Args:
+            lemma_id: The lemma's deterministic id.
+            gloss_language: Language of each card's gloss.
+            translation_languages: Languages to fill the translations with.
+
+        Returns:
+            The cards (empty for an unknown lemma or one with no sense).
         """
 
     @abstractmethod

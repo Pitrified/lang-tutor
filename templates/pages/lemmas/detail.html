@@ -1,66 +1,62 @@
 {% extends "base.html" %}
 
-{% block title %}{{ word.text if word else 'Unknown' }} – {{ app_name }}{% endblock %}
+{% block title %}{{ lemma.text if lemma else 'Unknown' }} – {{ app_name }}{% endblock %}
 
 {% block content %}
 <section class="section">
   <div class="container">
     <nav class="breadcrumb" aria-label="breadcrumbs">
       <ul>
-        <li><a href="/words">Words</a></li>
-        <li class="is-active"><a href="#" aria-current="page">{{ word.text if word else word_id }}</a></li>
+        <li><a href="/lemmas/">Lemmas</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ lemma.text if lemma else lemma_id }}</a></li>
       </ul>
     </nav>
 
-    {% if word %}
+    {% if lemma %}
     <div class="box">
-      <h1 class="title is-2">{{ word.text }}</h1>
+      <h1 class="title is-2">{{ lemma.text }}</h1>
       <div class="tags">
-        <span class="tag is-info">{{ word.language }}</span>
-        {% if word.part_of_speech %}<span class="tag is-primary">{{ word.part_of_speech }}</span>{% endif %}
-        {% if word.frequency %}<span class="tag is-warning">{{ word.frequency }}</span>{% endif %}
-        {% if word.has_accent %}<span class="tag is-success">accented</span>{% endif %}
+        <span class="tag is-info">{{ lemma.language }}</span>
+        {% if lemma.part_of_speech %}<span class="tag is-primary">{{ lemma.part_of_speech }}</span>{% endif %}
+        {% if senses %}<span class="tag is-warning" title="Estimated CEFR band of the most frequent meaning">{{ senses[0].cefr_level or '?' }}</span>{% endif %}
+        {% if lemma.has_accent %}<span class="tag is-success">accented</span>{% endif %}
       </div>
-
-      <div class="columns mt-4">
-        <div class="column is-6">
-          <h2 class="title is-5">Translations</h2>
-          {% if word.translations %}
-          <table class="table is-fullwidth">
-            {% for lang, trans in word.translations.items() %}
-            <tr><td><strong>{{ lang }}</strong></td><td>{{ trans }}</td></tr>
-            {% endfor %}
-          </table>
-          {% else %}
-          <p class="has-text-grey">No translations available.</p>
-          {% endif %}
-        </div>
-        <div class="column is-6">
-          <h2 class="title is-5">Info</h2>
-          <p><strong>Normalized:</strong> {{ word.normalized }}</p>
-          <p><strong>Length:</strong> {{ word.length }} characters</p>
-          {% if word.accented_chars %}
-          <p><strong>Accented chars:</strong> {{ word.accented_chars | join(', ') }}</p>
-          {% endif %}
-          {% if word.topics %}
-          <p><strong>Topics:</strong> {% for t in word.topics %}<span class="tag is-light mr-1">{{ t }}</span>{% endfor %}</p>
-          {% endif %}
-        </div>
-      </div>
-
-      {% if word.examples %}
-      <h2 class="title is-5 mt-4">Examples</h2>
-      {% for ex in word.examples %}
-      <div class="box">
-        <p><strong>{{ ex.sentence }}</strong></p>
-        {% if ex.translation %}<p class="has-text-grey">{{ ex.translation }}</p>{% endif %}
-      </div>
-      {% endfor %}
+      <p class="is-size-7 has-text-grey">
+        Normalized: {{ lemma.normalized }} · {{ lemma.length }} characters
+        {% if lemma.accented_chars %} · accents: {{ lemma.accented_chars | join(', ') }}{% endif %}
+      </p>
+      {% if lemma.topics %}
+      <p class="mt-2">{% for t in lemma.topics %}<span class="tag is-light mr-1">{{ t }}</span>{% endfor %}</p>
       {% endif %}
     </div>
+
+    <h2 class="title is-4">Meanings</h2>
+    {% for card in senses %}
+    <div class="box">
+      <div class="tags mb-2">
+        <span class="tag {% if loop.first %}is-primary{% else %}is-light{% endif %}">{{ loop.index }}</span>
+        {% if card.cefr_level %}<span class="tag is-warning is-light">{{ card.cefr_level }}</span>{% endif %}
+        {% if card.sense_frequency is not none %}<span class="tag is-light" title="Sense frequency (Zipf scale)">freq {{ '%.1f' | format(card.sense_frequency) }}</span>{% endif %}
+      </div>
+      <p class="mb-3">{{ card.gloss or 'No definition.' }}</p>
+      <table class="table is-narrow">
+        {% for lang, texts in card.translations.items() if texts %}
+        <tr>
+          <td><strong>{% if lang == lemma.language %}synonyms{% else %}{{ lang }}{% endif %}</strong></td>
+          <td>{{ texts[:6] | join(', ') }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% for sentence in card.examples[:2] %}
+      <p class="has-text-grey is-italic">“{{ sentence }}”</p>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="has-text-grey">No meanings recorded for this lemma.</p>
+    {% endfor %}
     {% else %}
     <div class="notification is-warning">
-      Word not found: <code>{{ word_id }}</code>
+      Lemma not found: <code>{{ lemma_id }}</code>
     </div>
     {% endif %}
   </div>

@@ -2,11 +2,17 @@
 
 JSON API for exercise interactions (start, submit, finish).
 Called by the exercise page JavaScript.
+
+Every round is built from `lang-tools` drill cards (`LemmaCard`): a bounded
+`CardQuery` per round, weighted by the user's session progress through
+`draw_cards`, never a whole language. Each exercise reports its lemma results
+to the session progress service, so the next draw prefers unseen and missed
+lemmas. The learner's level is the request's ``max_cefr`` (B1 by default).
 """
 
 from __future__ import annotations
 
-import random
+from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import Any
 from typing import Literal
@@ -15,17 +21,25 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi_tools.schemas.auth import SessionData  # noqa: TC002
+from lang_tools.lexicon import CardQuery
+from lang_tools.lexicon.card import CefrLevel  # noqa: TC002 - pydantic field type
 from pydantic import BaseModel
 from pydantic import Field
 
 from lang_tutor.content import get_content_source
 from lang_tutor.exercises.conversational_tutor import TutorMessage
 from lang_tutor.exercises.diacritic_typing import DiacriticTypingExercise
+from lang_tutor.exercises.pair_matching import MissingTranslationError
 from lang_tutor.exercises.pair_matching import PairMatchingExercise
 from lang_tutor.exercises.sentence_reconstruction import SentenceReconstructionExercise
 from lang_tutor.exercises.wordle import WordleExercise
+from lang_tutor.progress.selection import draw_cards
 from lang_tutor.webapp.core.auth import get_current_user
+from lang_tutor.webapp.services.progress_service import get_progress_service
 from lang_tutor.webapp.services.tutor_service import tutor_reply
+
+if TYPE_CHECKING:
+    from lang_tools.lexicon import LemmaCard
 
 router = APIRouter(prefix="/exercises", tags=["exercises-api"])
 
@@ -34,20 +48,47 @@ router = APIRouter(prefix="/exercises", tags=["exercises-api"])
 _active_rounds: dict[str, Any] = {}
 _tutor_histories: dict[str, list[TutorMessage]] = {}
 
+#: Extra cards drawn for a pair-matching round, so a card dropped for a shared
+#: translation does not shrink it.
+_PAIR_SPARES = 3
+
+#: Fewest pairs a pair-matching round is worth playing with.
+_MIN_PAIRS = 2
+
+
+class NoRoundContentError(HTTPException):
+    """A 400 raised when the corpus has nothing to build a round from."""
+
+    def __init__(self, what: str) -> None:
+        """Initialize with what the round needed.
+
+        Args:
+            what: The missing content, e.g. ``"accented lemmas for pt"``.
+        """
+        super().__init__(status_code=400, detail=f"No {what}.")
+
+
+def _draw(user: SessionData, query: CardQuery, n: int) -> list[LemmaCard]:
+    """Draw ``n`` cards for ``user``, weighted by their session progress."""
+    progress = get_progress_service().for_user(user.user_id)
+    return draw_cards(get_content_source(), query, progress, n)
+
 
 class PairMatchingStartRequest(BaseModel):
     """Request body to start a pair matching round."""
 
     language: str = "pt"
     target_language: str = "en"
-    num_lemmas: int = 5
+    num_lemmas: int = Field(default=5, ge=_MIN_PAIRS, le=10)
+    max_cefr: CefrLevel | None = "B1"
 
 
 class WordleStartRequest(BaseModel):
     """Request body to start a wordle game."""
 
     language: str = "pt"
-    word_length: int = 5
+    word_length: int = Field(default=5, ge=3, le=10)
+    max_cefr: CefrLevel | None = "B1"
 
 
 class WordleGuessRequest(BaseModel):
@@ -61,6 +102,8 @@ class DiacriticStartRequest(BaseModel):
 
     language: str = "pt"
     hint_level: Literal["off", "show_unaccented", "show_all"] = "off"
+    hint_language: str = "en"
+    max_cefr: CefrLevel | None = "B1"
 
 
 class DiacriticKeystrokeRequest(BaseModel):
@@ -73,6 +116,8 @@ class ReconstructionStartRequest(BaseModel):
     """Request body to start a sentence reconstruction round."""
 
     language: str = "pt"
+    hint_language: str = "en"
+    max_cefr: CefrLevel | None = "B1"
 
 
 class ReconstructionSubmitRequest(BaseModel):
@@ -101,20 +146,29 @@ async def pair_matching_start(
     body: PairMatchingStartRequest,
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
-    """Start a new pair matching round using real lemmas."""
-    lemmas = get_content_source().get_lemmas_filtered(language=body.language)
-    # Filter to lemmas that have the target translation
-    lemmas_with_trans = [
-        lemma for lemma in lemmas if body.target_language in lemma.translations
-    ]
-    if len(lemmas_with_trans) < body.num_lemmas:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Not enough lemmas with {body.target_language} translation.",
-        )
-    selected = random.sample(lemmas_with_trans, body.num_lemmas)
-    exercise = PairMatchingExercise(target_language=body.target_language)
-    round_ = exercise.start(selected)
+    """Start a new pair matching round from drill cards."""
+    query = CardQuery(
+        language=body.language,
+        translation_languages=[body.target_language],
+        require_translation=True,
+        single_word=True,
+        max_cefr=body.max_cefr,
+    )
+    cards = _draw(user, query, body.num_lemmas + _PAIR_SPARES)
+    exercise = PairMatchingExercise(
+        target_language=body.target_language,
+        progress_callback=get_progress_service().recorder(
+            user.user_id,
+            "pair_matching",
+        ),
+    )
+    try:
+        round_ = exercise.start(cards, num_pairs=body.num_lemmas) if cards else None
+    except MissingTranslationError:
+        round_ = None
+    if round_ is None or len(round_.prompt["left_lemmas"]) < _MIN_PAIRS:
+        missing = f"{body.language} lemmas with a {body.target_language} pair"
+        raise NoRoundContentError(missing)
 
     # Store round for submit calls
     round_key = f"{user.user_id}:pair_matching"
@@ -159,17 +213,21 @@ async def wordle_start(
     body: WordleStartRequest,
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
-    """Start a new wordle game with a real lemma."""
-    lemmas = get_content_source().get_lemmas_filtered(language=body.language)
-    candidates = [lemma for lemma in lemmas if lemma.length == body.word_length]
-    if not candidates:
-        raise HTTPException(
-            status_code=400,
-            detail=f"No {body.word_length}-letter words for {body.language}.",
-        )
-    target = random.choice(candidates)
-    exercise = WordleExercise()
-    round_ = exercise.start(target)
+    """Start a new wordle game around a level-appropriate single word."""
+    query = CardQuery(
+        language=body.language,
+        length=body.word_length,
+        single_word=True,
+        max_cefr=body.max_cefr,
+    )
+    cards = _draw(user, query, 1)
+    if not cards:
+        missing = f"{body.word_length}-letter words for {body.language}"
+        raise NoRoundContentError(missing)
+    exercise = WordleExercise(
+        progress_callback=get_progress_service().recorder(user.user_id, "wordle"),
+    )
+    round_ = exercise.start(cards[0].lemma)
 
     round_key = f"{user.user_id}:wordle"
     _active_rounds[round_key] = (exercise, round_)
@@ -217,17 +275,30 @@ async def diacritic_start(
     body: DiacriticStartRequest,
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
-    """Start a new diacritic typing round with a real accented lemma."""
-    lemmas = get_content_source().get_lemmas_filtered(language=body.language)
-    accented = [lemma for lemma in lemmas if lemma.has_accent]
-    if not accented:
-        raise HTTPException(
-            status_code=400,
-            detail=f"No accented lemmas for {body.language}.",
-        )
-    lemma = random.choice(accented)
-    exercise = DiacriticTypingExercise()
-    round_ = exercise.start(lemma, hint_level=body.hint_level)
+    """Start a new diacritic typing round on an accented single word."""
+    query = CardQuery(
+        language=body.language,
+        gloss_language=body.hint_language,
+        translation_languages=[body.hint_language],
+        accented_only=True,
+        single_word=True,
+        max_cefr=body.max_cefr,
+    )
+    cards = _draw(user, query, 1)
+    if not cards:
+        missing = f"accented lemmas for {body.language}"
+        raise NoRoundContentError(missing)
+    exercise = DiacriticTypingExercise(
+        progress_callback=get_progress_service().recorder(
+            user.user_id,
+            "diacritic_typing",
+        ),
+    )
+    round_ = exercise.start(
+        cards[0],
+        hint_level=body.hint_level,
+        hint_language=body.hint_language,
+    )
 
     round_key = f"{user.user_id}:diacritic"
     _active_rounds[round_key] = (exercise, round_)
@@ -238,7 +309,7 @@ async def diacritic_start(
             "display": round_.prompt["display"],
             "glosses": round_.prompt["glosses"],
             "word_length": len(round_.prompt["display"]),
-            "translation": lemma.translations.get("en", ""),
+            "translation": round_.prompt["translation"],
         },
     )
 
@@ -253,7 +324,8 @@ async def diacritic_keystroke(
     state = _active_rounds.get(round_key)
     if not state:
         raise HTTPException(
-            status_code=400, detail="No active diacritic game.",
+            status_code=400,
+            detail="No active diacritic game.",
         )
     exercise, round_ = state
     result = exercise.submit(round_, body.character)
@@ -273,20 +345,34 @@ async def reconstruction_start(
     body: ReconstructionStartRequest,
     user: Annotated[SessionData, Depends(get_current_user)],
 ) -> ExerciseResponse:
-    """Start a sentence reconstruction round using lemma examples."""
-    lemmas = get_content_source().get_lemmas_filtered(language=body.language)
-    lemmas_with_examples = [lemma for lemma in lemmas if lemma.examples]
-    if not lemmas_with_examples:
-        raise HTTPException(
-            status_code=400,
-            detail=f"No lemmas with examples for {body.language}.",
-        )
-    lemma = random.choice(lemmas_with_examples)
-    example = lemma.examples[0]
-    exercise = SentenceReconstructionExercise()
+    """Start a sentence reconstruction round from a concept example sentence.
+
+    The corpus has example sentences for en and it, plus a small curated set for
+    pt, es, and fr. The prompt names the drilled lemma and its meaning; the
+    sentence itself carries no stored translation.
+    """
+    query = CardQuery(
+        language=body.language,
+        gloss_language=body.hint_language,
+        translation_languages=[body.hint_language],
+        require_example=True,
+        max_cefr=body.max_cefr,
+    )
+    cards = _draw(user, query, 1)
+    if not cards:
+        missing = f"example sentences for {body.language}"
+        raise NoRoundContentError(missing)
+    card = cards[0]
+    exercise = SentenceReconstructionExercise(
+        progress_callback=get_progress_service().recorder(
+            user.user_id,
+            "sentence_reconstruction",
+        ),
+    )
     round_ = exercise.start(
-        sentence=example.sentence,
-        translation=example.translation or lemma.translations.get("en", ""),
+        sentence=card.examples[0],
+        translation=_sentence_hint(card, body.hint_language),
+        lemma_id=card.lemma.id,
     )
 
     round_key = f"{user.user_id}:reconstruction"
@@ -311,18 +397,29 @@ async def reconstruction_submit(
     state = _active_rounds.get(round_key)
     if not state:
         raise HTTPException(
-            status_code=400, detail="No active reconstruction game.",
+            status_code=400,
+            detail="No active reconstruction game.",
         )
     exercise, round_ = state
     result = exercise.submit(round_, body.selected_portions)
-    data: dict[str, Any] = {
-        "correct": result.correct,
-        "finished": len(result.lemma_results) > 0,
-    }
-    if len(result.lemma_results) > 0:
-        data["answer"] = " ".join(round_.expected)
-        del _active_rounds[round_key]
-    return ExerciseResponse(status="ok", data=data)
+    # One attempt per sentence: the page shows the answer on a miss.
+    del _active_rounds[round_key]
+    return ExerciseResponse(
+        status="ok",
+        data={
+            "correct": result.correct,
+            "finished": True,
+            "answer": " ".join(round_.expected),
+        },
+    )
+
+
+def _sentence_hint(card: LemmaCard, hint_language: str) -> str:
+    """Return the reconstruction prompt: the drilled lemma and its meaning."""
+    meaning = next(iter(card.translations.get(hint_language, [])), None)
+    if card.lemma.language == hint_language or meaning is None:
+        meaning = card.gloss or ""
+    return f"A sentence with “{card.lemma.text}” ({meaning})"
 
 
 @router.post("/conversational-tutor/message")
@@ -369,4 +466,3 @@ async def tutor_message(
             },
         },
     )
-

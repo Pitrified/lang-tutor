@@ -14,6 +14,7 @@ from lang_tools.lexicon import get_lemma_by_id as _store_get_lemma_by_id
 from lang_tools.lexicon import get_lemmas_filtered
 from lang_tools.lexicon import lemma_card
 from lang_tools.lexicon import lemma_cards
+from lang_tools.lexicon import lemma_sense_cards
 
 from lang_tutor.content.base import ContentSource
 from lang_tutor.content.base import LemmaPage
@@ -42,6 +43,20 @@ class InProcessContentSource(ContentSource):
     ) -> LemmaCard | None:
         """Return the drill card of one lemma, or None if absent."""
         return lemma_card(
+            lemma_id,
+            gloss_language=gloss_language,
+            translation_languages=translation_languages,
+        )
+
+    def get_sense_cards(
+        self,
+        lemma_id: str,
+        *,
+        gloss_language: str = "en",
+        translation_languages: Sequence[str] = ("en",),
+    ) -> list[LemmaCard]:
+        """Return one card per sense of a lemma, best sense first."""
+        return lemma_sense_cards(
             lemma_id,
             gloss_language=gloss_language,
             translation_languages=translation_languages,

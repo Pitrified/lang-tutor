@@ -94,13 +94,27 @@ class HttpContentSource(ContentSource):
         translation_languages: Sequence[str] = ("en",),
     ) -> LemmaCard | None:
         """Return the drill card of one lemma, or None if absent."""
-        params: QueryParams = [("gloss_language", gloss_language)]
-        params += [("translation_languages", lang) for lang in translation_languages]
+        params = _card_lookup_params(gloss_language, translation_languages)
         path = f"{_CARDS_PATH}/{lemma_id}"
         response = self._get(path, params=params, missing_ok=True)
         if response is None:
             return None
         return LemmaCard.model_validate(response.json())
+
+    def get_sense_cards(
+        self,
+        lemma_id: str,
+        *,
+        gloss_language: str = "en",
+        translation_languages: Sequence[str] = ("en",),
+    ) -> list[LemmaCard]:
+        """Return one card per sense of a lemma, best sense first."""
+        params = _card_lookup_params(gloss_language, translation_languages)
+        payload = self._get(f"{_CARDS_PATH}/{lemma_id}/senses", params=params).json()
+        if not isinstance(payload, list):
+            msg = f"Expected a list of cards, got {type(payload).__name__}."
+            raise ContentServiceError(msg)
+        return [LemmaCard.model_validate(item) for item in payload]
 
     def get_lemma_page(
         self,
@@ -199,6 +213,16 @@ class HttpContentSource(ContentSource):
     def close(self) -> None:
         """Close the underlying HTTP client."""
         self._client.close()
+
+
+def _card_lookup_params(
+    gloss_language: str,
+    translation_languages: Sequence[str],
+) -> QueryParams:
+    """Encode the gloss and translation languages of a per-lemma card read."""
+    params: QueryParams = [("gloss_language", gloss_language)]
+    params += [("translation_languages", lang) for lang in translation_languages]
+    return params
 
 
 def _card_params(query: CardQuery) -> QueryParams:

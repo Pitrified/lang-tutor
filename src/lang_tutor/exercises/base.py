@@ -54,10 +54,13 @@ class ExerciseRound(BaseModel):
     Attributes:
         prompt: Exercise-specific prompt payload.
         expected: Exercise-specific expected answer used by `submit`.
+        lemma_id: The lemma a single-lemma round drills, when the expected
+            answer does not carry it (sentence reconstruction).
     """
 
     prompt: Any
     expected: Any
+    lemma_id: str | None = None
 
     model_config = {"arbitrary_types_allowed": True}
 

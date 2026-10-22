@@ -49,6 +49,10 @@ def _handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200, json=[card.model_dump(mode="json") for card in cards]
         )
+    if path.startswith("/api/v1/cards/") and path.endswith("/senses"):
+        card = _CARDS.get(path.removeprefix("/api/v1/cards/").removesuffix("/senses"))
+        cards = [card] if card else []
+        return httpx.Response(200, json=[c.model_dump(mode="json") for c in cards])
     for prefix, table in (("/api/v1/lemmas/", _BY_ID), ("/api/v1/cards/", _CARDS)):
         if path.startswith(prefix):
             item = table.get(path.removeprefix(prefix))
@@ -103,6 +107,15 @@ def test_get_card_found_and_missing() -> None:
     assert card.lemma.text == "casa"
     assert _SEEN[-1].url.params.get_list("translation_languages") == ["en", "it"]
     assert source.get_card("nope") is None
+
+
+def test_get_sense_cards() -> None:
+    """The per-sense list parses; an unknown lemma has none."""
+    source = _make_source()
+    cards = source.get_sense_cards(_CASA.id, gloss_language="pt")
+    assert [card.lemma.text for card in cards] == ["casa"]
+    assert _SEEN[-1].url.params["gloss_language"] == "pt"
+    assert source.get_sense_cards("nope") == []
 
 
 def test_get_lemma_page_reads_the_total_header() -> None:

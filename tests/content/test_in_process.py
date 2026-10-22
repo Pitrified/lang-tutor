@@ -58,6 +58,14 @@ def test_get_card_found_and_missing() -> None:
     assert source.get_card("does-not-exist") is None
 
 
+def test_get_sense_cards() -> None:
+    """Every sense of a lemma comes back as a card."""
+    source = InProcessContentSource()
+    cards = source.get_sense_cards(_CASA.id)
+    assert [card.concept_id for card in cards] == [C_HOUSE]
+    assert source.get_sense_cards("does-not-exist") == []
+
+
 def test_get_lemma_page_pages_and_counts() -> None:
     """A page is bounded and carries the total match count."""
     source = InProcessContentSource()
