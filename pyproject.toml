@@ -41,6 +41,9 @@ dev = [
     { include-group = "test" },
 ]
 test = [
+    # The webapp tests import fastapi-tools, so a plain `uv sync` installs the
+    # project's own `webapp` extra.
+    "lang-tutor[webapp]",
     "pytest>=8.3.4",
     "pytest-asyncio>=1.3.0",
 ]

@@ -18,10 +18,10 @@ site/
 
 # app
 instance/
-static/css
-static/js
-static/img
-static/swagger
+static/css/*
+static/js/*
+static/img/*
+static/swagger/*
 !static/css/app.css
 !static/img/logo.svg
 
