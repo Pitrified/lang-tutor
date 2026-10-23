@@ -30,10 +30,7 @@ def _initial_display(text: str, hint_level: HintLevel) -> list[str]:
     if hint_level == "show_all":
         return list(text)
     if hint_level == "show_unaccented":
-        return [
-            ch if _normalize(ch) == ch.lower() else "_"
-            for ch in text
-        ]
+        return [ch if _normalize(ch) == ch.lower() else "_" for ch in text]
     return ["_"] * len(text)
 
 
@@ -150,9 +147,7 @@ class DiacriticTypingExercise(_BaseExercise):
         result = RoundResult(
             correct=correct,
             feedback=(
-                None
-                if correct
-                else f"{character!r} is not at position {state.cursor}."
+                None if correct else f"{character!r} is not at position {state.cursor}."
             ),
             lemma_results=lemma_results,
         )

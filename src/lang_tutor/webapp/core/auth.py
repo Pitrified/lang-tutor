@@ -89,4 +89,3 @@ async def get_optional_user(
 
 GetCurrentUser = Annotated[SessionData, Depends(get_current_user)]
 GetOptionalUser = Annotated[SessionData | None, Depends(get_optional_user)]
-
