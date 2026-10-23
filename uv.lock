@@ -1177,11 +1177,11 @@ dev = [
     { name = "nbformat", specifier = ">=5.10.4" },
     { name = "nbstripout", specifier = ">=0.8.2" },
     { name = "pre-commit", specifier = ">=4.1.0" },
-    { name = "pyright", extras = ["nodejs"], specifier = ">=1.1.407" },
+    { name = "pyright", extras = ["nodejs"], specifier = "==1.1.410" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "rich", specifier = ">=13.9.4" },
-    { name = "ruff", specifier = ">=0.9.6" },
+    { name = "ruff", specifier = "==0.15.17" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
 docs = [
@@ -1192,8 +1192,8 @@ docs = [
 lint = [
     { name = "detect-secrets", specifier = ">=1.5.0" },
     { name = "pre-commit", specifier = ">=4.1.0" },
-    { name = "pyright", extras = ["nodejs"], specifier = ">=1.1.407" },
-    { name = "ruff", specifier = ">=0.9.6" },
+    { name = "pyright", extras = ["nodejs"], specifier = "==1.1.410" },
+    { name = "ruff", specifier = "==0.15.17" },
 ]
 notebook = [
     { name = "ipykernel", specifier = ">=6.29.5" },
@@ -1291,11 +1291,11 @@ dev = [
     { name = "nbformat", specifier = ">=5.10.4" },
     { name = "nbstripout", specifier = ">=0.8.2" },
     { name = "pre-commit", specifier = ">=4.1.0" },
-    { name = "pyright", extras = ["nodejs"], specifier = ">=1.1.407" },
+    { name = "pyright", extras = ["nodejs"], specifier = "==1.1.410" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "rich", specifier = ">=13.9.4" },
-    { name = "ruff", specifier = ">=0.9.6" },
+    { name = "ruff", specifier = "==0.15.17" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
 docs = [
@@ -1306,8 +1306,8 @@ docs = [
 lint = [
     { name = "detect-secrets", specifier = ">=1.5.0" },
     { name = "pre-commit", specifier = ">=4.1.0" },
-    { name = "pyright", extras = ["nodejs"], specifier = ">=1.1.407" },
-    { name = "ruff", specifier = ">=0.9.6" },
+    { name = "pyright", extras = ["nodejs"], specifier = "==1.1.410" },
+    { name = "ruff", specifier = "==0.15.17" },
 ]
 notebook = [
     { name = "ipykernel", specifier = ">=6.29.5" },
