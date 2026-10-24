@@ -35,10 +35,10 @@ make docs
 make serve
 ```
 
-`lang-tools` is consumed as a library; for local development it is resolved via
-an editable `[tool.uv.sources]` path to `../lang-tools`. Content is read over
-HTTP from the `lang-tools` service by default, or in-process from that checkout
-(see the content source guide).
+`lang-tools` is consumed as a library, pinned by git tag. Content is read over
+HTTP from the `lang-tools` service by default, or in-process from a local
+`lang-tools` checkout installed with `make dev-lang-tools` (see the content
+source guide).
 
 ## Project Structure
 

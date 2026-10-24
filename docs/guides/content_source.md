@@ -136,6 +136,11 @@ export LANG_TOOLS_BASE_URL=http://127.0.0.1:8010
 export LANG_TOOLS_CONTENT_SOURCE=in_process
 ```
 
+`in_process` reads the corpus under the `data/` folder of the installed
+`lang-tools`. The git-tag install carries no data, so install a local checkout
+first with `make dev-lang-tools` (it reads `../lang-tools/data/`), and run the
+app through `make` so the override stays in place ([Makefile](makefile.md)).
+
 To run the HTTP path locally, start the `lang-tools` read service first (see the
 `lang-tools` "Running the read service" guide), then point
 `LANG_TOOLS_BASE_URL` at it.

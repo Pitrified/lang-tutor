@@ -16,9 +16,10 @@ git clone https://github.com/Pitrified/lang-tutor.git
 cd lang-tutor
 ```
 
-`lang-tutor` depends on the companion `lang-tools` repo. For local development,
-clone it as a sibling directory (`../lang-tools`); `pyproject.toml` resolves it
-via an editable `[tool.uv.sources]` path.
+`lang-tutor` depends on the companion `lang-tools` repo, pinned by git tag in
+`pyproject.toml`, so `make sync` installs it with no checkout. To work on both at
+once, or to read content `in_process`, clone `lang-tools` as a sibling
+(`../lang-tools`) and run `make dev-lang-tools`; see [Makefile](guides/makefile.md).
 
 ### 2. Install Dependencies
 

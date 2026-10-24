@@ -7,7 +7,7 @@ requires-python = "==3.14.*"
 dependencies = [
     "python-dotenv>=1.0",
     "httpx>=0.28",
-    "lang-tools @ git+https://github.com/Pitrified/lang-tools@main",
+    "lang-tools @ git+https://github.com/Pitrified/lang-tools@v0.2.0",
     "loguru>=0.7.3",
 ]
 
@@ -15,13 +15,6 @@ dependencies = [
 webapp = [
     "fastapi-tools @ git+https://github.com/Pitrified/fastapi-tools@v0.1.0",
 ]
-
-# Local editable override for co-development: lang-tools still changes with
-# lang-tutor, so it is not pinned to a tag yet. The git URL above is the release
-# form; this path source wins for local dev, and the `in_process` content mode
-# reads that checkout's corpus.
-[tool.uv.sources]
-lang-tools = { path = "../lang-tools", editable = true }
 
 [build-system]
 requires = ["hatchling"]

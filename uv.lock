@@ -1130,8 +1130,8 @@ wheels = [
 
 [[package]]
 name = "lang-tools"
-version = "0.1.0"
-source = { editable = "../lang-tools" }
+version = "0.2.0"
+source = { git = "https://github.com/Pitrified/lang-tools?rev=v0.2.0#490434dbfb56a39e89ed30ceaf17b222ef18ac55" }
 dependencies = [
     { name = "chroma-haystack" },
     { name = "haystack-ai" },
@@ -1142,71 +1142,6 @@ dependencies = [
     { name = "pyarrow" },
     { name = "python-dotenv" },
     { name = "tiktoken" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "chroma-haystack", specifier = ">=2.0.1" },
-    { name = "duckdb", marker = "extra == 'store'", specifier = ">=1.1.0" },
-    { name = "fastapi-tools", marker = "extra == 'webapp'", git = "https://github.com/Pitrified/fastapi-tools?rev=v0.1.0" },
-    { name = "haystack-ai", specifier = ">=2.10.0" },
-    { name = "llm-core", extras = ["openai"], git = "https://github.com/Pitrified/llm-core?rev=v0.2.2" },
-    { name = "loguru", specifier = ">=0.7.3" },
-    { name = "matplotlib", marker = "extra == 'enrich'", specifier = ">=3.9.0" },
-    { name = "ollama-haystack", specifier = ">=2.3.0" },
-    { name = "openai", specifier = ">=1.63.0" },
-    { name = "pandas", marker = "extra == 'enrich'", specifier = ">=2.2.0" },
-    { name = "pyarrow", specifier = ">=18.0.0" },
-    { name = "python-dotenv", specifier = ">=1.0" },
-    { name = "tiktoken", specifier = ">=0.9.0" },
-    { name = "wn", marker = "extra == 'ingest'", specifier = ">=0.9.5" },
-    { name = "wordfreq", marker = "extra == 'ingest'", specifier = ">=3.0.0" },
-    { name = "xlrd", marker = "extra == 'enrich'", specifier = ">=2.0.1" },
-]
-provides-extras = ["webapp", "store", "ingest", "enrich"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "detect-secrets", specifier = ">=1.5.0" },
-    { name = "ipykernel", specifier = ">=6.29.5" },
-    { name = "ipywidgets", specifier = ">=8.1.5" },
-    { name = "mkdocs", specifier = ">=1.6" },
-    { name = "mkdocs-api-autonav", specifier = ">=0.2" },
-    { name = "mkdocs-material", specifier = ">=9.5" },
-    { name = "nbconvert", specifier = ">=7.16.0" },
-    { name = "nbformat", specifier = ">=5.10.4" },
-    { name = "nbstripout", specifier = ">=0.8.2" },
-    { name = "pre-commit", specifier = ">=4.1.0" },
-    { name = "pyright", extras = ["nodejs"], specifier = "==1.1.410" },
-    { name = "pytest", specifier = ">=8.3.4" },
-    { name = "pytest-asyncio", specifier = ">=1.3.0" },
-    { name = "rich", specifier = ">=13.9.4" },
-    { name = "ruff", specifier = "==0.15.17" },
-    { name = "tqdm", specifier = ">=4.67.1" },
-]
-docs = [
-    { name = "mkdocs", specifier = ">=1.6" },
-    { name = "mkdocs-api-autonav", specifier = ">=0.2" },
-    { name = "mkdocs-material", specifier = ">=9.5" },
-]
-lint = [
-    { name = "detect-secrets", specifier = ">=1.5.0" },
-    { name = "pre-commit", specifier = ">=4.1.0" },
-    { name = "pyright", extras = ["nodejs"], specifier = "==1.1.410" },
-    { name = "ruff", specifier = "==0.15.17" },
-]
-notebook = [
-    { name = "ipykernel", specifier = ">=6.29.5" },
-    { name = "ipywidgets", specifier = ">=8.1.5" },
-    { name = "nbconvert", specifier = ">=7.16.0" },
-    { name = "nbformat", specifier = ">=5.10.4" },
-    { name = "nbstripout", specifier = ">=0.8.2" },
-    { name = "rich", specifier = ">=13.9.4" },
-    { name = "tqdm", specifier = ">=4.67.1" },
-]
-test = [
-    { name = "pytest", specifier = ">=8.3.4" },
-    { name = "pytest-asyncio", specifier = ">=1.3.0" },
 ]
 
 [[package]]
@@ -1273,7 +1208,7 @@ test = [
 requires-dist = [
     { name = "fastapi-tools", marker = "extra == 'webapp'", git = "https://github.com/Pitrified/fastapi-tools?rev=v0.1.0" },
     { name = "httpx", specifier = ">=0.28" },
-    { name = "lang-tools", editable = "../lang-tools" },
+    { name = "lang-tools", git = "https://github.com/Pitrified/lang-tools?rev=v0.2.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "python-dotenv", specifier = ">=1.0" },
 ]
