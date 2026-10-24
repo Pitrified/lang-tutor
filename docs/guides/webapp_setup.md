@@ -4,7 +4,7 @@ This guide covers setting up and deploying the FastAPI webapp with Google OAuth 
 
 ## Prerequisites
 
-- Python 3.13+
+- Python 3.14
 - Google Cloud Platform account
 - (Optional) Render account for deployment
 

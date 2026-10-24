@@ -20,7 +20,7 @@ companion [`lang-tools`](https://github.com/Pitrified/lang-tools) library.
   plus a conversation continuation.
 - **FastAPI webapp** - pages, runtime exercises API, Google OAuth (disabled in
   dev), session state, Jinja2 + HTMX.
-- Modern Python 3.14, managed with [uv](https://docs.astral.sh/uv/).
+- Python 3.14, managed with [uv](https://docs.astral.sh/uv/).
 - Pre-configured Ruff, Pyright, pytest, pre-commit, and MkDocs.
 
 ## Quick Start
