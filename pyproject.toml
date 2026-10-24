@@ -16,10 +16,10 @@ webapp = [
     "fastapi-tools @ git+https://github.com/Pitrified/fastapi-tools@v0.1.0",
 ]
 
-# Local editable override for phase 2 co-development. lang-tools is still being
-# edited while tutor concerns are extracted, so it cannot be pinned to a tag
-# yet; the git URL above is the release form, this path source wins for local
-# dev. Phase 3 swaps content reads to HTTP and this can pin to a tag.
+# Local editable override for co-development: lang-tools still changes with
+# lang-tutor, so it is not pinned to a tag yet. The git URL above is the release
+# form; this path source wins for local dev, and the `in_process` content mode
+# reads that checkout's corpus.
 [tool.uv.sources]
 lang-tools = { path = "../lang-tools", editable = true }
 

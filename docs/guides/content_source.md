@@ -67,6 +67,11 @@ three cases:
 The look-alike edges are pairwise, and this view is a read-time union over the
 known languages, so adding a language to the list needs no other change.
 
+Which pairs exist is decided in `lang-tools`: agents review the candidate pairs
+against a rulebook, most common pt words first, and the build drops any trap
+whose known word is rare (a learner who does not know en *palaver* is not misled
+by pt *palavra*). A pt word without a reviewed pair simply reads as "neither".
+
 How the tutor uses them:
 
 - **Selection** gives a trap a mild bonus (`trap_factor` 1.3, worth practising) and

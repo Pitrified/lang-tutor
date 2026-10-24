@@ -4,13 +4,14 @@
 
 `lang-tutor` is the **learner-facing tutoring + exercises app** of the language-learning ecosystem (Portuguese-focused but multi-language by design). It owns the stateful, per-user experience: the five exercise mechanics, per-user progress tracking and weighted word selection, the interactive tutor chain, and the FastAPI webapp (pages, runtime exercises API, Google OAuth, session state).
 
-It depends on the companion **`lang-tools`** repo as a library for content: the `Word` model, the read/query helpers over the word store (`get_words_filtered`, `get_word_by_id`, ...), the `Language` presets, and the content-producing LLM chains. The dependency is strictly one-way - `lang-tutor` imports `lang-tools`, never the reverse. In phase 2 content is read **in-process** via the query helpers; phase 3 will switch content reads to an HTTP read API served by `lang-tools`. The split is tracked in `lang-tools`' `scratch_space/08_lang_tutor/`.
+It depends on the companion **`lang-tools`** repo as a library for content: the lexicon's `LemmaCard` drill cards and `CardQuery`, the lemma / concept read helpers, the `Language` presets, and the content-producing LLM chains. The dependency is strictly one-way - `lang-tutor` imports `lang-tools`, never the reverse. Content is read over HTTP from the `lang-tools` read API by default, or in-process from a local `lang-tools` checkout. The split is tracked in `lang-tools`' `scratch_space/08_lang_tutor/`.
 
 Python 3.14, managed with **uv**. Package name is `lang_tutor`.
 
 ## Running & tooling
 
 ```bash
+uv sync --all-extras --all-groups    # install; a narrower sync drops extras
 uv run pytest                        # run tests
 uv run ruff check .                  # lint (ruff, ALL rules enabled)
 uv run pyright                       # type-check (src/ and tests/ only)
@@ -83,7 +84,7 @@ cfg.to_kw(exclude_none=True)  # {"some_int": 1, "nested_model": ..., "extra": Tr
 The canonical reference implementations are `src/lang_tutor/config/sample_config.py` and `src/lang_tutor/params/sample_params.py`.
 
 **FastAPI webapp factory**  
-`build_app()` in `src/lang_tutor/webapp/main.py` calls `fastapi-tools`' `create_app(config=...)` and registers the pages, exercises, words, progress, languages, and API v1 routers, with static files and Jinja2 templates. Entry point for uvicorn: `lang_tutor.webapp.app:app`.
+`build_app()` in `src/lang_tutor/webapp/main.py` calls `fastapi-tools`' `create_app(config=...)` and registers the pages, exercises, lemmas, progress, languages, and API v1 routers, with static files and Jinja2 templates. Entry point for uvicorn: `lang_tutor.webapp.app:app`.
 
 Webapp config objects (`CORSConfig`, `SessionConfig`, `RateLimitConfig`, `GoogleOAuthConfig`) come from `fastapi-tools` and are assembled by `WebappParams` in `src/lang_tutor/params/webapp/webapp_params.py` (no local `config/webapp/`).
 
@@ -159,7 +160,9 @@ Rules:
 
 ## Linting notes
 
-- `ruff.toml` targets Python 3.13 with `select = ["ALL"]`. Key ignores: `COM812`, `D104`, `D203`, `D213`, `D413`, `FIX002`, `RET504`, `TD002`, `TD003`.
+- `ruff==0.15.17` and `pyright[nodejs]==1.1.410` are pinned exactly in the `lint` group and match the `rev`s in `.pre-commit-config.yaml`; bump both together (see `docs/guides/pre_commit.md`).
+- `pyproject.toml` sets `requires-python = "==3.14.*"` and `[tool.pyright] pythonVersion = "3.14"`. `ruff.toml` stays on `target-version = "py313"`: under py314's deferred annotations ruff wants many imports moved into `TYPE_CHECKING` blocks, which pydantic models need at runtime.
+- `ruff.toml` uses `select = ["ALL"]`. Key ignores: `COM812`, `D104`, `D203`, `D213`, `D413`, `FIX002`, `RET504`, `TD002`, `TD003`.
 - Tests additionally allow `ARG001`, `D103`, `INP001`, `PLR2004`, `S101`, `S311`.
 - `src/lang_tutor/webapp/**` additionally allows `ARG001` (FastAPI DI) and `S311` (game randomness, not crypto).
 - Notebooks (`*.ipynb`) additionally allow `E501`, `ERA001`, `F401`, `S311`, `T20`.
