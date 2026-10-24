@@ -1,7 +1,10 @@
 """Tests for HTML page routes (landing, dashboard, error, partials)."""
 
-from fastapi.testclient import TestClient
-from fastapi_tools.schemas.auth import SessionData
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from fastapi.testclient import TestClient
+    from fastapi_tools.schemas.auth import SessionData
 
 
 class TestLandingPage:

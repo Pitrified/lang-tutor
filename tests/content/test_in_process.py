@@ -1,6 +1,6 @@
 """Tests for the in-process content source, over a small fixture store."""
 
-from collections.abc import Generator
+from typing import TYPE_CHECKING
 
 from lang_tools.lexicon import CardQuery
 from lang_tools.lexicon import Concept
@@ -12,6 +12,9 @@ from lang_tools.lexicon.lemma_store import set_store
 import pytest
 
 from lang_tutor.content.in_process import InProcessContentSource
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 C_HOUSE = "c__house-building__0011aabbccdd"
 

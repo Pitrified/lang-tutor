@@ -23,9 +23,9 @@ from typing import Literal
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
-from fastapi_tools.schemas.auth import SessionData  # noqa: TC002
+from fastapi_tools.schemas.auth import SessionData
 from lang_tools.lexicon import CardQuery
-from lang_tools.lexicon.card import CefrLevel  # noqa: TC002 - pydantic field type
+from lang_tools.lexicon.card import CefrLevel
 from pydantic import BaseModel
 from pydantic import Field
 

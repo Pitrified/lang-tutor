@@ -1,14 +1,13 @@
 """Shared test fixtures for webapp tests."""
 
-from collections.abc import Generator
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from fastapi_tools import create_app
 from fastapi_tools.config.webapp_config import CORSConfig
@@ -21,6 +20,11 @@ from fastapi_tools.schemas.auth import SessionData
 import pytest
 
 from lang_tutor.webapp.routers.pages_router import router as pages_router
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from fastapi import FastAPI
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 _STATIC_DIR = _PROJECT_ROOT / "static"

@@ -1,8 +1,11 @@
 """Tests for `lang_tutor.params.learner_params`."""
 
-import pytest
+from typing import TYPE_CHECKING
 
 from lang_tutor.params.learner_params import LearnerParams
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def test_defaults_are_a_pt_learner_who_knows_en_and_it(

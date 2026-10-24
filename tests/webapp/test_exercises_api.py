@@ -1,12 +1,8 @@
 """Tests for the exercise JSON API over a small fixture lexicon."""
 
-from collections.abc import Generator
+from typing import TYPE_CHECKING
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from fastapi_tools import create_app
-from fastapi_tools.config.webapp_config import WebappConfig
-from fastapi_tools.schemas.auth import SessionData
 from lang_tools.lexicon import Concept
 from lang_tools.lexicon import Lemma
 from lang_tools.lexicon import LexiconStore
@@ -25,6 +21,14 @@ from lang_tutor.webapp.services.progress_service import get_progress_service
 
 from .conftest import _STATIC_DIR
 from .conftest import _TEMPLATES_DIR
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from fastapi_tools.config.webapp_config import WebappConfig
+    from fastapi_tools.schemas.auth import SessionData
 
 #: (pt, en, gloss, cefr) for each fixture concept.
 _WORDS = (

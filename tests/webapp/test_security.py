@@ -1,6 +1,9 @@
 """Tests for security headers, CSP route-splitting, and CSRF protection."""
 
-from fastapi.testclient import TestClient
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from fastapi.testclient import TestClient
 
 
 def test_security_headers_present(client: TestClient) -> None:

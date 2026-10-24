@@ -1,7 +1,10 @@
 """Tests for authentication endpoints."""
 
-from fastapi.testclient import TestClient
-from fastapi_tools.schemas.auth import SessionData
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from fastapi.testclient import TestClient
+    from fastapi_tools.schemas.auth import SessionData
 
 
 def test_google_login_redirect(client: TestClient) -> None:

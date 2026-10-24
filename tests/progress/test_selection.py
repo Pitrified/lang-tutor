@@ -1,7 +1,7 @@
 """Tests for `lang_tutor.progress.selection`."""
 
-from collections.abc import Sequence
 import random
+from typing import TYPE_CHECKING
 
 from lang_tools.lexicon import CardQuery
 from lang_tools.lexicon import Lemma
@@ -15,6 +15,9 @@ from lang_tutor.progress.selection import SelectionWeights
 from lang_tutor.progress.selection import compute_weight
 from lang_tutor.progress.selection import draw_cards
 from lang_tutor.progress.selection import select_lemmas
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def _card(text: str = "amor", level: str | None = "B1") -> LemmaCard:

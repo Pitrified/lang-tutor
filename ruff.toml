@@ -1,7 +1,7 @@
 # Ruff configuration file
 # https://docs.astral.sh/ruff/rules/
 
-target-version = "py313"
+target-version = "py314"
 
 [lint]
 select = ["ALL"]
@@ -20,6 +20,7 @@ ignore = [
 [lint.per-file-ignores]
 "*.ipynb" = [
     "E501",   # Line too long
+    "TC",     # Imports used only in annotations: notebooks keep plain imports
     "ERA001", # Found commented-out code
     "F401",   # unused import
     "S311",   # Standard pseudo-random generators
@@ -35,6 +36,11 @@ ignore = [
 ]
 "src/lang_tutor/webapp/**" = [
     "ARG001", # Unused function argument: FastAPI DI injects via signature
+    # FastAPI reads route annotations at runtime (query models, dependencies,
+    # response models), so their imports must not move into TYPE_CHECKING.
+    "TC001",
+    "TC002",
+    "TC003",
     "S311",   # Standard pseudo-random generators (game randomness, not crypto)
 ]
 "meta/*" = [
