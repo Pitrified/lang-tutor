@@ -1,7 +1,17 @@
 """Pair matching exercise (from `brazilian-bites`).
 
-Given N words, the user matches each one to its translation drawn from a
-shuffled column. Each `submit` call evaluates a single ``(left, right)`` tap.
+Given N drill cards, the user matches each lemma to its translation drawn from
+a shuffled column. Each `submit` call evaluates a single ``(left, right)`` tap.
+
+The translation is the most frequent target-language lemma of the card's best
+sense (`LemmaCard.translations`). Two cards that would show the same right-hand
+word make the round ambiguous, so a card takes its next translation instead,
+and a card with no unused translation left is dropped from the round.
+
+Decoys (phase 11): when a paired card is a false friend of a word in the
+translation language (`LemmaCard.lookalikes`), that look-alike can join the
+right column as a decoy. It matches nothing; tapping it for its look-alike
+returns the trap note as feedback (pt *esquisito* is not *exquisite*).
 """
 
 from __future__ import annotations
@@ -12,28 +22,29 @@ import random
 from typing import TYPE_CHECKING
 
 from lang_tutor.exercises.base import ExerciseRound
+from lang_tutor.exercises.base import LemmaResult
 from lang_tutor.exercises.base import RoundResult
-from lang_tutor.exercises.base import WordResult
 from lang_tutor.exercises.base import _BaseExercise
 
 if TYPE_CHECKING:
-    from lang_tools.words.word import Word
+    from lang_tools.lexicon import Lemma
+    from lang_tools.lexicon import LemmaCard
 
 
 class MissingTranslationError(KeyError):
-    """Raised when a word does not carry a translation in the target language."""
+    """Raised when no card carries a usable translation in the target language."""
 
-    def __init__(self, word: Word, target_language: str) -> None:
-        """Initialize with the offending word and the missing target language.
+    def __init__(self, lemma: Lemma, target_language: str) -> None:
+        """Initialize with the offending lemma and the missing target language.
 
         Args:
-            word: The `Word` that lacks a translation.
+            lemma: The lemma that lacks a translation.
             target_language: Target ISO 639-1 code that was requested.
         """
         super().__init__(
-            f"Word {word.text!r} has no translation in {target_language!r}",
+            f"Lemma {lemma.text!r} has no translation in {target_language!r}",
         )
-        self.word = word
+        self.lemma = lemma
         self.target_language = target_language
 
 
@@ -58,7 +69,8 @@ class PairMatchingExercise(_BaseExercise):
         """Initialize with the translation language and an optional RNG.
 
         Args:
-            target_language: ISO 639-1 code used to look up `Word.translations`.
+            target_language: ISO 639-1 code used to look up
+                `LemmaCard.translations`.
             rng: Optional `random.Random`; defaults to `random.SystemRandom`.
             **kwargs: Forwarded to `_BaseExercise`.
         """
@@ -66,47 +78,92 @@ class PairMatchingExercise(_BaseExercise):
         self.target_language = target_language
         self.rng = rng or random.SystemRandom()
 
-    def start(self, words: list[Word]) -> ExerciseRound:
-        """Build a round from a list of words.
+    def start(
+        self,
+        cards: list[LemmaCard],
+        *,
+        num_pairs: int | None = None,
+        max_decoys: int = 0,
+    ) -> ExerciseRound:
+        """Build a round from a list of drill cards.
 
         Args:
-            words: The words to match. Each must have a translation in
-                `target_language`.
+            cards: Candidate cards, in draw order. Pass a few more than
+                ``num_pairs`` so a dropped card does not shrink the round.
+            num_pairs: Stop once this many pairs are built; every usable card
+                when None.
+            max_decoys: Add up to this many false-friend decoys to the right
+                column (see the module docstring).
 
         Returns:
             `ExerciseRound` whose `prompt` carries the left/right columns and
             `expected` the correct mapping ``{left_text: right_text}``.
 
         Raises:
-            MissingTranslationError: When any word lacks a translation in
-                `target_language`.
+            MissingTranslationError: When no card yields a pair (every card
+                lacks an unused translation in `target_language`).
         """
         self._ensure_started()
         pairs: dict[str, str] = {}
-        word_by_text: dict[str, Word] = {}
-        for word in words:
-            translation = word.translations.get(self.target_language)
+        lemma_by_text: dict[str, Lemma] = {}
+        used: set[str] = set()
+        for card in cards:
+            if num_pairs is not None and len(pairs) >= num_pairs:
+                break
+            if card.lemma.text in pairs:
+                continue
+            options = card.translations.get(self.target_language, [])
+            translation = next((t for t in options if t.casefold() not in used), None)
             if translation is None:
-                raise MissingTranslationError(word, self.target_language)
-            pairs[word.text] = translation
-            word_by_text[word.text] = word
+                continue
+            used.add(translation.casefold())
+            pairs[card.lemma.text] = translation
+            lemma_by_text[card.lemma.text] = card.lemma
+        if not pairs:
+            raise MissingTranslationError(cards[0].lemma, self.target_language)
 
-        right_column = list(pairs.values())
+        decoys = self._decoys(cards, pairs, used, max_decoys)
+        right_column = [*pairs.values(), *decoys]
         self.rng.shuffle(right_column)
         return ExerciseRound(
             prompt={
-                "left_words": list(pairs.keys()),
-                "right_words": right_column,
+                "left_lemmas": list(pairs.keys()),
+                "right_lemmas": right_column,
             },
-            expected={"pairs": pairs, "word_by_text": word_by_text},
+            expected={"pairs": pairs, "lemma_by_text": lemma_by_text, "decoys": decoys},
         )
+
+    def _decoys(
+        self,
+        cards: list[LemmaCard],
+        pairs: dict[str, str],
+        used: set[str],
+        max_decoys: int,
+    ) -> dict[str, tuple[str, str]]:
+        """Return ``decoy text -> (left text, trap note)`` for the paired cards."""
+        decoys: dict[str, tuple[str, str]] = {}
+        for card in cards:
+            if len(decoys) >= max_decoys:
+                break
+            if card.lemma.text not in pairs:
+                continue
+            for hint in card.lookalikes:
+                if (
+                    hint.is_trap
+                    and hint.language == self.target_language
+                    and hint.text.casefold() not in used
+                ):
+                    used.add(hint.text.casefold())
+                    decoys[hint.text] = (card.lemma.text, hint.note)
+                    break
+        return decoys
 
     def submit(
         self,
         round_: ExerciseRound,
         selected_pair: tuple[str, str],
     ) -> RoundResult:
-        """Score a single ``(left_word, right_word)`` tap.
+        """Score a single ``(left_lemma, right_lemma)`` tap.
 
         Args:
             round_: The round returned by `start`.
@@ -114,22 +171,32 @@ class PairMatchingExercise(_BaseExercise):
 
         Returns:
             `RoundResult` reflecting whether the right value matches the
-            expected translation for the left word. Includes one `WordResult`
-            for the left word.
+            expected translation for the left lemma. Includes one `LemmaResult`
+            for the left lemma.
         """
         left, right = selected_pair
         expected_pairs: dict[str, str] = round_.expected["pairs"]
-        word_by_text: dict[str, Word] = round_.expected["word_by_text"]
+        lemma_by_text: dict[str, Lemma] = round_.expected["lemma_by_text"]
+        decoys: dict[str, tuple[str, str]] = round_.expected.get("decoys", {})
         correct = expected_pairs.get(left) == right
-        word_results: list[WordResult] = []
-        if left in word_by_text:
-            word_results.append(
-                WordResult(word_id=word_by_text[left].id, correct=correct),
+        lemma_results: list[LemmaResult] = []
+        if left in lemma_by_text:
+            lemma_results.append(
+                LemmaResult(lemma_id=lemma_by_text[left].id, correct=correct),
             )
         result = RoundResult(
             correct=correct,
-            feedback=None if correct else "Wrong pair.",
-            word_results=word_results,
+            feedback=_feedback(correct=correct, left=left, decoy=decoys.get(right)),
+            lemma_results=lemma_results,
         )
         self._bookkeep(result)
         return result
+
+
+def _feedback(*, correct: bool, left: str, decoy: tuple[str, str] | None) -> str | None:
+    """Return the tap's feedback: the trap note when a decoy fooled the learner."""
+    if correct:
+        return None
+    if decoy is not None and decoy[0] == left and decoy[1]:
+        return f"False friend! {decoy[1]}"
+    return "Wrong pair."

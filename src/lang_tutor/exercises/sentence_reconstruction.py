@@ -13,6 +13,7 @@ from dataclasses import field
 import random
 
 from lang_tutor.exercises.base import ExerciseRound
+from lang_tutor.exercises.base import LemmaResult
 from lang_tutor.exercises.base import RoundResult
 from lang_tutor.exercises.base import _BaseExercise
 
@@ -76,6 +77,7 @@ class SentenceReconstructionExercise(_BaseExercise):
         translation: str,
         *,
         portions: list[str] | None = None,
+        lemma_id: str | None = None,
     ) -> ExerciseRound:
         """Build a round from a target-language sentence.
 
@@ -83,6 +85,8 @@ class SentenceReconstructionExercise(_BaseExercise):
             sentence: Target-language sentence the user must reconstruct.
             translation: User-language translation shown as the prompt.
             portions: Pre-split portions; defaults to a whitespace split.
+            lemma_id: The lemma the sentence drills, reported in the submit
+                result for progress tracking (none when None).
 
         Returns:
             `ExerciseRound` whose `prompt` is a dict with shuffled portions.
@@ -96,6 +100,7 @@ class SentenceReconstructionExercise(_BaseExercise):
         return ExerciseRound(
             prompt={"translation": translation, "portions": shuffled},
             expected=ordered,
+            lemma_id=lemma_id,
         )
 
     def submit(self, round_: ExerciseRound, selected_order: list[str]) -> RoundResult:
@@ -106,12 +111,19 @@ class SentenceReconstructionExercise(_BaseExercise):
             selected_order: User's chosen portion order.
 
         Returns:
-            `RoundResult` whose `correct` flag is True iff orderings match.
+            `RoundResult` whose `correct` flag is True iff orderings match. When
+            the round drills a lemma, its `LemmaResult` is included.
         """
         correct = selected_order == round_.expected
+        lemma_results = (
+            [LemmaResult(lemma_id=round_.lemma_id, correct=correct)]
+            if round_.lemma_id
+            else []
+        )
         result = RoundResult(
             correct=correct,
             feedback=None if correct else "Order does not match the expected sentence.",
+            lemma_results=lemma_results,
         )
         self._bookkeep(result)
         return result

@@ -2,7 +2,7 @@
 
 The tutor response chain is the one interactive-feedback chain that lives in
 `lang-tutor`. The content-producing chains (translation, conversation,
-splitter, word_generator, topics, greeting) stay in `lang-tools`.
+splitter, lemma_generator, topics, greeting) stay in `lang-tools`.
 
 Public API:
     TutorInput, TutorOutput, CorrectionBlock, ConversationBlock, ErrorDetail,

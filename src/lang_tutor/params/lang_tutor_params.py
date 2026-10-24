@@ -14,6 +14,7 @@ from lang_tutor.metaclasses.singleton import Singleton
 from lang_tutor.params.content_params import ContentParams
 from lang_tutor.params.env_type import EnvType
 from lang_tutor.params.lang_tutor_paths import LangTutorPaths
+from lang_tutor.params.learner_params import LearnerParams
 from lang_tutor.params.llm_params import LlmParams
 from lang_tutor.params.sample_params import SampleParams
 from lang_tutor.params.webapp import WebappParams
@@ -47,6 +48,7 @@ class LangTutorParams(metaclass=Singleton):
         self.sample = SampleParams()
         self.llm = LlmParams()
         self.content = ContentParams()
+        self.learner = LearnerParams()
         self.webapp = WebappParams(
             stage=self.env_type.stage,
             location=self.env_type.location,
@@ -59,6 +61,7 @@ class LangTutorParams(metaclass=Singleton):
         s += f"\n{self.sample}"
         s += f"\n{self.llm}"
         s += f"\n{self.content}"
+        s += f"\n{self.learner}"
         s += f"\n{self.webapp}"
         return s
 
@@ -90,3 +93,8 @@ def get_llm_params() -> LlmParams:
 def get_content_params() -> ContentParams:
     """Get the content source params."""
     return get_lang_tutor_params().content
+
+
+def get_learner_params() -> LearnerParams:
+    """Get the learner params (target and known languages)."""
+    return get_lang_tutor_params().learner

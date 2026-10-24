@@ -11,13 +11,16 @@ companion [`lang-tools`](https://github.com/Pitrified/lang-tools) library.
 
 - **Exercises** - five mechanics: sentence reconstruction, pair matching,
   diacritic typing, wordle, and a conversational tutor.
-- **Progress** - per-user `UserWordProgress` and weighted word selection over
-  the `lang-tools` word pool.
+- **Progress** - per-user `UserLemmaProgress` (in memory per session) and
+  weighted selection over `lang-tools` drill cards (`LemmaCard`), drawn by CEFR
+  level. Cards carry their look-alikes in the learner's known languages (false
+  friends and cognates), which shape selection, pair-matching decoys, and the
+  lemma page.
 - **Tutor chain** - an `llm-core` `StructuredLLMChain` producing a correction
   plus a conversation continuation.
 - **FastAPI webapp** - pages, runtime exercises API, Google OAuth (disabled in
   dev), session state, Jinja2 + HTMX.
-- Modern Python 3.14, managed with [uv](https://docs.astral.sh/uv/).
+- Python 3.14, managed with [uv](https://docs.astral.sh/uv/).
 - Pre-configured Ruff, Pyright, pytest, pre-commit, and MkDocs.
 
 ## Quick Start
@@ -26,16 +29,16 @@ companion [`lang-tools`](https://github.com/Pitrified/lang-tools) library.
 git clone https://github.com/Pitrified/lang-tutor.git
 cd lang-tutor
 
-uv sync --all-extras --all-groups
-
-uv run pytest
-uv run mkdocs serve
-uvicorn lang_tutor.webapp.app:app --reload
+make sync
+make check
+make docs
+make serve
 ```
 
-`lang-tools` is consumed as a library; for local development it is resolved via
-an editable `[tool.uv.sources]` path to `../lang-tools`, and word content is
-read from that checkout in-process.
+`lang-tools` is consumed as a library, pinned by git tag. Content is read over
+HTTP from the `lang-tools` service by default, or in-process from a local
+`lang-tools` checkout installed with `make dev-lang-tools` (see the content
+source guide).
 
 ## Project Structure
 

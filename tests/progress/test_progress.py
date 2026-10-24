@@ -3,11 +3,11 @@
 from datetime import datetime
 
 from lang_tutor.progress.progress import ExerciseStats
-from lang_tutor.progress.progress import UserWordProgress
+from lang_tutor.progress.progress import UserLemmaProgress
 
 
 def test_record_increments_counters() -> None:
-    p = UserWordProgress(user_id="u", word_id="w")
+    p = UserLemmaProgress(user_id="u", lemma_id="l")
     p.record(correct=True, exercise_type="wordle")
     p.record(correct=False, exercise_type="wordle")
     stats: ExerciseStats = p.exercise_stats["wordle"]
@@ -17,8 +17,8 @@ def test_record_increments_counters() -> None:
     assert isinstance(stats.last_seen_at, datetime)
 
 
-def test_record_without_exercise_type_only_updates_word() -> None:
-    p = UserWordProgress(user_id="u", word_id="w")
+def test_record_without_exercise_type_only_updates_lemma() -> None:
+    p = UserLemmaProgress(user_id="u", lemma_id="l")
     p.record(correct=True)
     assert p.seen_count == 1
     assert p.exercise_stats == {}

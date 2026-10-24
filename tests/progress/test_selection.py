@@ -1,55 +1,147 @@
 """Tests for `lang_tutor.progress.selection`."""
 
 import random
+from typing import TYPE_CHECKING
 
-from lang_tools.words.word import Word
+from lang_tools.lexicon import CardQuery
+from lang_tools.lexicon import Lemma
+from lang_tools.lexicon import LemmaCard
+from lang_tools.lexicon import LookalikeHint
 
-from lang_tutor.progress.progress import UserWordProgress
+from lang_tutor.content.base import ContentSource
+from lang_tutor.content.base import LemmaPage
+from lang_tutor.progress.progress import UserLemmaProgress
 from lang_tutor.progress.selection import SelectionWeights
-from lang_tutor.progress.selection import WordFilter
 from lang_tutor.progress.selection import compute_weight
-from lang_tutor.progress.selection import select_words
+from lang_tutor.progress.selection import draw_cards
+from lang_tutor.progress.selection import select_lemmas
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
-def _word(text: str = "amor", **extra: object) -> Word:
-    return Word(
-        text=text,
-        language="pt",
-        part_of_speech="noun",
-        frequency="medium",
-        **extra,  # type: ignore[arg-type]
+def _card(text: str = "amor", level: str | None = "B1") -> LemmaCard:
+    return LemmaCard(
+        lemma=Lemma(text=text, language="pt", part_of_speech="noun"),
+        cefr_level=level,
     )
 
 
-def test_useless_words_get_zero_weight() -> None:
-    w = _word()
-    progress = UserWordProgress(user_id="u", word_id=w.id, is_useless=True)
-    assert compute_weight(w, progress, SelectionWeights()) == 0.0
+class _FakeSource(ContentSource):
+    """Records the card query and serves a fixed pool."""
+
+    def __init__(self, cards: list[LemmaCard]) -> None:
+        self.cards = cards
+        self.queries: list[CardQuery] = []
+
+    def get_cards(self, query: CardQuery) -> list[LemmaCard]:
+        self.queries.append(query)
+        excluded = set(query.exclude_ids)
+        return [c for c in self.cards if c.lemma.id not in excluded][: query.limit]
+
+    def get_card(
+        self,
+        lemma_id: str,  # noqa: ARG002
+        *,
+        gloss_language: str = "en",  # noqa: ARG002
+        translation_languages: Sequence[str] = ("en",),  # noqa: ARG002
+        known_languages: Sequence[str] = (),  # noqa: ARG002
+    ) -> LemmaCard | None:
+        return None
+
+    def get_sense_cards(
+        self,
+        lemma_id: str,  # noqa: ARG002
+        *,
+        gloss_language: str = "en",  # noqa: ARG002
+        translation_languages: Sequence[str] = ("en",),  # noqa: ARG002
+        known_languages: Sequence[str] = (),  # noqa: ARG002
+    ) -> list[LemmaCard]:
+        return []
+
+    def get_lemma_page(self, **_kwargs: object) -> LemmaPage:
+        return LemmaPage(lemmas=[], total=0)
+
+    def get_lemma_by_id(self, lemma_id: str) -> Lemma | None:  # noqa: ARG002
+        return None
 
 
-def test_unseen_words_have_higher_weight_than_seen() -> None:
-    seen_word = _word("paz")
-    unseen_word = _word("amor")
-    seen_progress = UserWordProgress(user_id="u", word_id=seen_word.id, seen_count=10)
-    unseen_progress = UserWordProgress(user_id="u", word_id=unseen_word.id)
+def test_useless_lemmas_get_zero_weight() -> None:
+    card = _card()
+    progress = UserLemmaProgress(user_id="u", lemma_id=card.lemma.id, is_useless=True)
+    assert compute_weight(card, progress, SelectionWeights()) == 0.0
+
+
+def test_unseen_lemmas_have_higher_weight_than_seen() -> None:
+    seen = _card("paz")
+    unseen = _card("amor")
+    seen_progress = UserLemmaProgress(
+        user_id="u", lemma_id=seen.lemma.id, seen_count=10
+    )
+    unseen_progress = UserLemmaProgress(user_id="u", lemma_id=unseen.lemma.id)
     weights = SelectionWeights()
-    assert compute_weight(unseen_word, unseen_progress, weights) > compute_weight(
-        seen_word, seen_progress, weights,
+    assert compute_weight(unseen, unseen_progress, weights) > compute_weight(
+        seen,
+        seen_progress,
+        weights,
     )
 
 
-def test_word_filter_min_length() -> None:
-    short = _word("oi")
-    long_word = _word("paciencia")
-    f = WordFilter(min_length=4)
-    assert not f.matches(short)
-    assert f.matches(long_word)
+def test_easier_band_weighs_more() -> None:
+    weights = SelectionWeights()
+    assert compute_weight(_card("a", "A1"), None, weights) > compute_weight(
+        _card("b", "C2"),
+        None,
+        weights,
+    )
+    # No band scores neutral, between the two.
+    assert compute_weight(_card("c", None), None, weights) == weights.unseen_multiplier
 
 
-def test_select_words_returns_distinct() -> None:
-    pool = [_word(t) for t in ("amor", "paz", "luz", "vida", "sol")]
-    progress: dict[str, UserWordProgress] = {}
-    rng = random.Random(0)
-    chosen = select_words(pool, progress, n=3, rng=rng)
+def test_lookalikes_shift_the_weight() -> None:
+    weights = SelectionWeights()
+    plain = compute_weight(_card("lar"), None, weights)
+    trap = _card("esquisito")
+    trap.lookalikes = [LookalikeHint(language="en", text="exquisite", kind="full")]
+    free = _card("nação")
+    free.lookalikes = [LookalikeHint(language="it", text="nazione", kind="cognate")]
+    assert (
+        compute_weight(trap, None, weights)
+        > plain
+        > compute_weight(free, None, weights)
+    )
+
+
+def test_select_lemmas_returns_distinct() -> None:
+    pool = [_card(t) for t in ("amor", "paz", "luz", "vida", "sol")]
+    progress: dict[str, UserLemmaProgress] = {}
+    chosen = select_lemmas(pool, progress, n=3, rng=random.Random(0))
     assert len(chosen) == 3
-    assert len({w.id for w in chosen}) == 3
+    assert len({card.lemma.id for card in chosen}) == 3
+
+
+def test_select_lemmas_dedupes_the_pool() -> None:
+    pool = [_card("amor"), _card("amor"), _card("paz")]
+    chosen = select_lemmas(pool, {}, n=5, rng=random.Random(0))
+    assert sorted(card.lemma.text for card in chosen) == ["amor", "paz"]
+
+
+def test_draw_cards_fetches_a_window_and_skips_useless() -> None:
+    cards = [_card(t) for t in ("amor", "paz", "luz", "vida", "sol")]
+    useless = cards[0].lemma.id
+    progress = {
+        useless: UserLemmaProgress(user_id="u", lemma_id=useless, is_useless=True)
+    }
+    source = _FakeSource(cards)
+    chosen = draw_cards(
+        source,
+        CardQuery(language="pt", limit=1),
+        progress,
+        n=2,
+        rng=random.Random(0),
+    )
+    assert len(chosen) == 2
+    assert useless not in {card.lemma.id for card in chosen}
+    sent = source.queries[-1]
+    assert sent.limit == 8  # n * the default window factor of 4
+    assert useless in sent.exclude_ids

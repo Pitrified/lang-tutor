@@ -18,12 +18,12 @@ from lang_tools.language.normalization import normalize as _normalize
 from pydantic import BaseModel
 
 from lang_tutor.exercises.base import ExerciseRound
+from lang_tutor.exercises.base import LemmaResult
 from lang_tutor.exercises.base import RoundResult
-from lang_tutor.exercises.base import WordResult
 from lang_tutor.exercises.base import _BaseExercise
 
 if TYPE_CHECKING:
-    from lang_tools.words.word import Word
+    from lang_tools.lexicon.lemma import Lemma
 
 LetterState = Literal["correct", "misplaced", "wrong", "unused"]
 
@@ -61,7 +61,7 @@ def _evaluate(guess: str, target: str) -> list[LetterResult]:
 
 @dataclass
 class _WordleState:
-    target: Word
+    target: Lemma
     target_normalized: str
     word_length: int
     max_attempts: int
@@ -99,11 +99,11 @@ class WordleExercise(_BaseExercise):
         """
         super().__init__(exercise_type="wordle", **kwargs)  # type: ignore[arg-type]
 
-    def start(self, target: Word, *, max_attempts: int | None = None) -> ExerciseRound:
+    def start(self, target: Lemma, *, max_attempts: int | None = None) -> ExerciseRound:
         """Build a Wordle round around `target`.
 
         Args:
-            target: The hidden word.
+            target: The hidden lemma.
             max_attempts: Override for the default ``len(target) + 1``.
 
         Returns:
@@ -139,7 +139,7 @@ class WordleExercise(_BaseExercise):
 
         Returns:
             `RoundResult` flagging this guess. When the round terminates (win
-            or attempts exhausted) a `WordResult` is appended.
+            or attempts exhausted) a `LemmaResult` is appended.
         """
         state: _WordleState = round_.expected
 
@@ -166,14 +166,16 @@ class WordleExercise(_BaseExercise):
         state.won = correct
         terminated = correct or len(state.guesses) >= state.max_attempts
 
-        word_results: list[WordResult] = []
+        lemma_results: list[LemmaResult] = []
         if terminated:
-            word_results.append(WordResult(word_id=state.target.id, correct=correct))
+            lemma_results.append(
+                LemmaResult(lemma_id=state.target.id, correct=correct),
+            )
 
         result = RoundResult(
             correct=correct,
             feedback=None if correct else f"{guess!r} is not the word.",
-            word_results=word_results,
+            lemma_results=lemma_results,
         )
         self._bookkeep(result)
         return result

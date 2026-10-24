@@ -7,7 +7,7 @@ requires-python = "==3.14.*"
 dependencies = [
     "python-dotenv>=1.0",
     "httpx>=0.28",
-    "lang-tools @ git+https://github.com/Pitrified/lang-tools@main",
+    "lang-tools @ git+https://github.com/Pitrified/lang-tools@v0.2.0",
     "loguru>=0.7.3",
 ]
 
@@ -15,13 +15,6 @@ dependencies = [
 webapp = [
     "fastapi-tools @ git+https://github.com/Pitrified/fastapi-tools@v0.1.0",
 ]
-
-# Local editable override for phase 2 co-development. lang-tools is still being
-# edited while tutor concerns are extracted, so it cannot be pinned to a tag
-# yet; the git URL above is the release form, this path source wins for local
-# dev. Phase 3 swaps content reads to HTTP and this can pin to a tag.
-[tool.uv.sources]
-lang-tools = { path = "../lang-tools", editable = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -41,12 +34,18 @@ dev = [
     { include-group = "test" },
 ]
 test = [
+    # The webapp tests import fastapi-tools, so a plain `uv sync` installs the
+    # project's own `webapp` extra.
+    "lang-tutor[webapp]",
     "pytest>=8.3.4",
     "pytest-asyncio>=1.3.0",
 ]
 lint = [
-    "ruff>=0.9.6",
-    "pyright[nodejs]>=1.1.407",
+    # Exact, and the same as rev in .pre-commit-config.yaml: the two drifted
+    # once and formatted the same file differently. Bump both together.
+    "ruff==0.15.17",
+    # Exact, and the same as rev in .pre-commit-config.yaml; bump both together.
+    "pyright[nodejs]==1.1.410",
     "pre-commit>=4.1.0",
     "detect-secrets>=1.5.0",
 ]
@@ -67,5 +66,6 @@ docs = [
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+pythonVersion = "3.14"
 # remember to adjust include paths as needed (eg scripts folder)
 include = ["src", "tests"]

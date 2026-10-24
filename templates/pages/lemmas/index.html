@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Lemmas – {{ app_name }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title is-3">Lemma Browser</h1>
+    <p class="subtitle is-5">Search the vocabulary by word, language, or topic.</p>
+
+    <form class="box mb-4" id="lemma-filters"
+          hx-get="/lemmas/partial"
+          hx-target="#lemma-table-container"
+          hx-swap="innerHTML"
+          hx-trigger="submit, change from:#filter-language">
+      <div class="columns">
+        <div class="column is-3">
+          <div class="field">
+            <label class="label is-small" for="filter-language">Language</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select id="filter-language" name="language">
+                  <option value="">All languages</option>
+                  {% for code, name in languages %}
+                  <option value="{{ code }}" {% if language_filter == code %}selected{% endif %}>{{ name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column is-4">
+          <div class="field">
+            <label class="label is-small" for="filter-q">Starts with</label>
+            <div class="control">
+              <input id="filter-q" class="input" type="search" name="q"
+                     placeholder="e.g. cas (accents optional)"
+                     value="{{ query or '' }}">
+            </div>
+          </div>
+        </div>
+        <div class="column is-3">
+          <div class="field">
+            <label class="label is-small" for="filter-topic">Topic</label>
+            <div class="control">
+              <input id="filter-topic" class="input" type="text" name="topic"
+                     placeholder="e.g. food, family"
+                     value="{{ topic_filter or '' }}">
+            </div>
+          </div>
+        </div>
+        <div class="column is-2 is-flex is-align-items-flex-end">
+          <button class="button is-info is-fullwidth" type="submit">Search</button>
+        </div>
+      </div>
+    </form>
+
+    <div id="lemma-table-container">
+      {% include "pages/lemmas/_lemma_table.html" %}
+    </div>
+  </div>
+</section>
+{% endblock %}

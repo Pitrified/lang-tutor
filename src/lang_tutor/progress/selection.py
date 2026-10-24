@@ -1,12 +1,22 @@
-"""Weighted random selection over a `Word` pool.
+"""Weighted random selection over a pool of drill cards.
 
 Merges the `brazilian-bites` and `go-accenter` heuristics:
 
 - Errors strongly boost weight.
-- Unseen words receive the maximum priority.
-- High-frequency words get a mild bonus.
-- Recently-seen words decay.
-- Words flagged `is_useless` are excluded entirely.
+- Unseen lemmas receive the maximum priority.
+- Easier lemmas (by the best sense's CEFR band) get a mild bonus.
+- A false friend of a word the learner knows gets a mild bonus (worth
+  practising); a cognate of one gets a mild damping (free vocabulary). Both read
+  `LemmaCard.lookalikes`, so they apply when the card query names the learner's
+  known languages.
+- Recently-seen lemmas decay.
+- Lemmas flagged `is_useless` are excluded entirely.
+
+The pool is a list of `lang_tools.lexicon.LemmaCard`. Filtering (language,
+level, word shape, translations) is the `CardQuery`'s job on the `lang-tools`
+side; this module only weights what comes back. `draw_cards` ties the two
+together: it asks the content source for a candidate window a few times the
+round size, then weights that window with the user's progress.
 """
 
 from __future__ import annotations
@@ -17,58 +27,31 @@ from datetime import datetime
 import random
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
+from lang_tools.lexicon.card import MAX_CARD_LIMIT
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from lang_tools.words.word import Word
+    from lang_tools.lexicon import CardQuery
+    from lang_tools.lexicon import LemmaCard
 
-    from lang_tutor.progress.progress import UserWordProgress
+    from lang_tutor.content.base import ContentSource
+    from lang_tutor.progress.progress import UserLemmaProgress
 
 
-_FREQUENCY_FACTOR: dict[str, float] = {
-    "high": 1.2,
-    "medium": 1.0,
-    "low": 0.8,
+#: Mild per-band multipliers: easier (and so more common) meanings come up a
+#: little more often. An unknown band scores like B2.
+_LEVEL_FACTOR: dict[str, float] = {
+    "A1": 1.3,
+    "A2": 1.2,
+    "B1": 1.1,
+    "B2": 1.0,
+    "C1": 0.9,
+    "C2": 0.8,
 }
 
-
-class WordFilter(BaseModel):
-    """Optional pool filter applied before weighted selection.
-
-    Attributes:
-        has_accent: Restrict to words whose `text` contains accented chars.
-        has_translation: Require a translation in this target language code.
-        min_length: Minimum `len(text)`.
-        max_length: Maximum `len(text)`.
-        topics: At least one of these topics must be present (if non-empty).
-        languages: Restrict to words in any of these ISO 639-1 codes.
-    """
-
-    has_accent: bool | None = None
-    has_translation: str | None = None
-    min_length: int | None = None
-    max_length: int | None = None
-    topics: list[str] | None = None
-    languages: list[str] | None = None
-
-    def matches(self, word: Word) -> bool:
-        """Return True if `word` passes every active constraint."""
-        if self.has_accent is not None and word.has_accent != self.has_accent:
-            return False
-        if (
-            self.has_translation is not None
-            and self.has_translation not in word.translations
-        ):
-            return False
-        if self.min_length is not None and word.length < self.min_length:
-            return False
-        if self.max_length is not None and word.length > self.max_length:
-            return False
-        if self.topics and not set(self.topics).intersection(word.topics):
-            return False
-        return not (self.languages and word.language not in self.languages)
+#: How many candidates `draw_cards` fetches per card it returns.
+DEFAULT_WINDOW_FACTOR = 4
 
 
 @dataclass
@@ -76,40 +59,44 @@ class SelectionWeights:
     """Tunable knobs for the weighting algorithm.
 
     Attributes:
-        base: Weight assigned to a freshly-seen word with no errors.
+        base: Weight assigned to a freshly-seen lemma with no errors.
         error_boost: Multiplier per recorded error.
         unseen_multiplier: Multiplier applied when `seen_count == 0`.
         recency_half_life_seconds: Time-to-half-weight after a recent encounter.
-        frequency_factor: Per-frequency-tier multipliers.
+        level_factor: Per-CEFR-band multipliers.
+        trap_factor: Multiplier for a false friend of a known word.
+        cognate_factor: Multiplier for a cognate of a known word (no trap).
     """
 
     base: float = 1.0
     error_boost: float = 3.0
     unseen_multiplier: float = 5.0
     recency_half_life_seconds: float = 3600.0  # 1 hour
-    frequency_factor: dict[str, float] = field(
-        default_factory=lambda: dict(_FREQUENCY_FACTOR),
+    level_factor: dict[str, float] = field(
+        default_factory=lambda: dict(_LEVEL_FACTOR),
     )
+    trap_factor: float = 1.3
+    cognate_factor: float = 0.7
 
 
 def compute_weight(
-    word: Word,
-    progress: UserWordProgress | None,
+    card: LemmaCard,
+    progress: UserLemmaProgress | None,
     weights: SelectionWeights | None = None,
     *,
     now: datetime | None = None,
 ) -> float:
-    """Return the selection weight for one ``(word, progress)`` pair.
+    """Return the selection weight for one ``(card, progress)`` pair.
 
     Args:
-        word: The word being scored.
+        card: The drill card being scored.
         progress: Progress record, or ``None`` if the user has never seen it.
         weights: Tunable scoring knobs; defaults to `SelectionWeights()`.
         now: Reference timestamp for recency decay; defaults to
             ``datetime.now()``.
 
     Returns:
-        Non-negative weight. ``0.0`` when the word is flagged `is_useless`.
+        Non-negative weight. ``0.0`` when the lemma is flagged `is_useless`.
     """
     weights = weights or SelectionWeights()
 
@@ -124,9 +111,15 @@ def compute_weight(
     else:
         weight *= 1.0 + weights.error_boost * progress.error_count
 
-    # Frequency factor.
-    if word.frequency is not None:
-        weight *= weights.frequency_factor.get(word.frequency, 1.0)
+    # Level factor.
+    if card.cefr_level is not None:
+        weight *= weights.level_factor.get(card.cefr_level, 1.0)
+
+    # Look-alikes in the learner's known languages.
+    if card.is_trap:
+        weight *= weights.trap_factor
+    elif card.has_cognate:
+        weight *= weights.cognate_factor
 
     # Recency decay: halves every `recency_half_life_seconds` since last seen.
     if progress is not None and progress.last_seen_at is not None:
@@ -137,48 +130,92 @@ def compute_weight(
     return max(0.0, weight)
 
 
-def select_words(
-    pool: Iterable[Word],
-    progress: dict[str, UserWordProgress],
+def select_lemmas(
+    pool: Iterable[LemmaCard],
+    progress: dict[str, UserLemmaProgress],
     n: int,
     *,
-    word_filter: WordFilter | None = None,
     weights: SelectionWeights | None = None,
     rng: random.Random | None = None,
     now: datetime | None = None,
-) -> list[Word]:
-    """Pick `n` distinct words from `pool` via weighted sampling.
+) -> list[LemmaCard]:
+    """Pick `n` distinct cards from `pool` via weighted sampling.
 
     Args:
-        pool: Candidate words (any iterable; consumed once).
-        progress: Map of `Word.id` to `UserWordProgress`.
-        n: Number of words to return. Capped at the number of eligible words.
-        word_filter: Optional `WordFilter` applied before weighting.
+        pool: Candidate cards (any iterable; consumed once).
+        progress: Map of `Lemma.id` to `UserLemmaProgress`.
+        n: Number of cards to return. Capped at the number of eligible cards.
         weights: Tunable scoring knobs.
         rng: Optional `random.Random` for deterministic tests.
         now: Reference time for recency decay.
 
     Returns:
-        Up to `n` distinct `Word` instances ordered by their (random) draw.
+        Up to `n` distinct cards ordered by their (random) draw.
     """
     rng = rng or random.SystemRandom()
-    candidates: list[tuple[Word, float]] = []
-    for word in pool:
-        if word_filter is not None and not word_filter.matches(word):
+    candidates: list[tuple[LemmaCard, float]] = []
+    seen_ids: set[str] = set()
+    for card in pool:
+        if card.lemma.id in seen_ids:
             continue
-        weight = compute_weight(word, progress.get(word.id), weights, now=now)
+        seen_ids.add(card.lemma.id)
+        weight = compute_weight(card, progress.get(card.lemma.id), weights, now=now)
         if weight > 0.0:
-            candidates.append((word, weight))
+            candidates.append((card, weight))
 
     if not candidates or n <= 0:
         return []
 
     n = min(n, len(candidates))
-    chosen: list[Word] = []
+    chosen: list[LemmaCard] = []
     remaining = list(candidates)
     for _ in range(n):
-        words, weight_values = zip(*remaining, strict=True)
-        index = rng.choices(range(len(words)), weights=weight_values, k=1)[0]
-        chosen.append(words[index])
+        cards, weight_values = zip(*remaining, strict=True)
+        index = rng.choices(range(len(cards)), weights=weight_values, k=1)[0]
+        chosen.append(cards[index])
         remaining.pop(index)
     return chosen
+
+
+def draw_cards(
+    source: ContentSource,
+    query: CardQuery,
+    progress: dict[str, UserLemmaProgress],
+    n: int,
+    *,
+    window_factor: int = DEFAULT_WINDOW_FACTOR,
+    weights: SelectionWeights | None = None,
+    rng: random.Random | None = None,
+) -> list[LemmaCard]:
+    """Fetch a candidate window from the content source and weight it.
+
+    The window is ``n * window_factor`` cards (capped at the service maximum),
+    sampled at random by `lang-tools`. Lemmas the user flagged useless are
+    excluded on the server side, so they do not take window slots.
+
+    Args:
+        source: The content source to read cards from.
+        query: The round's card filters; its ``limit`` is replaced.
+        progress: Map of `Lemma.id` to `UserLemmaProgress`.
+        n: Number of cards to return.
+        window_factor: Candidates fetched per returned card.
+        weights: Tunable scoring knobs.
+        rng: Optional `random.Random` for deterministic tests.
+
+    Returns:
+        Up to `n` distinct cards.
+    """
+    useless = [lid for lid, record in progress.items() if record.is_useless]
+    window = query.model_copy(
+        update={
+            "limit": max(1, min(n * window_factor, MAX_CARD_LIMIT)),
+            "exclude_ids": [*query.exclude_ids, *useless],
+        },
+    )
+    return select_lemmas(
+        source.get_cards(window),
+        progress,
+        n,
+        weights=weights,
+        rng=rng,
+    )

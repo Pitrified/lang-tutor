@@ -2,8 +2,8 @@
 
 Pattern rules:
     Each concrete exercise builds an `ExerciseRound`, evaluates user input via
-    `submit`, and returns a `RoundResult` whose `word_results` feed back into
-    `UserWordProgress`. Calling `finish()` aggregates a `SessionSummary` and
+    `submit`, and returns a `RoundResult` whose `lemma_results` feed back into
+    `UserLemmaProgress`. Calling `finish()` aggregates a `SessionSummary` and
     optionally persists progress through a caller-supplied callback.
 """
 
@@ -36,15 +36,15 @@ EXERCISE_TYPES: tuple[ExerciseType, ...] = (
 )
 
 
-class WordResult(BaseModel):
-    """Per-word outcome of a single round.
+class LemmaResult(BaseModel):
+    """Per-lemma outcome of a single round.
 
     Attributes:
-        word_id: ID of the involved `Word`.
+        lemma_id: ID of the involved `Lemma`.
         correct: Whether the user got it right.
     """
 
-    word_id: str
+    lemma_id: str
     correct: bool
 
 
@@ -54,10 +54,13 @@ class ExerciseRound(BaseModel):
     Attributes:
         prompt: Exercise-specific prompt payload.
         expected: Exercise-specific expected answer used by `submit`.
+        lemma_id: The lemma a single-lemma round drills, when the expected
+            answer does not carry it (sentence reconstruction).
     """
 
     prompt: Any
     expected: Any
+    lemma_id: str | None = None
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -68,12 +71,12 @@ class RoundResult(BaseModel):
     Attributes:
         correct: Whether the round overall counts as correct.
         feedback: Optional human-readable feedback message.
-        word_results: Per-word outcomes for progress tracking.
+        lemma_results: Per-lemma outcomes for progress tracking.
     """
 
     correct: bool
     feedback: str | None = None
-    word_results: list[WordResult] = Field(default_factory=list)
+    lemma_results: list[LemmaResult] = Field(default_factory=list)
 
 
 class SessionSummary(BaseModel):
@@ -83,18 +86,18 @@ class SessionSummary(BaseModel):
         exercise_type: Tag of the originating exercise.
         total_rounds: Number of rounds played.
         correct_rounds: Number of rounds the user completed correctly.
-        words_practiced: Distinct word IDs touched during the session.
+        lemmas_practiced: Distinct lemma IDs touched during the session.
         duration_seconds: Wall-clock duration in seconds.
     """
 
     exercise_type: ExerciseType
     total_rounds: int
     correct_rounds: int
-    words_practiced: list[str]
+    lemmas_practiced: list[str]
     duration_seconds: float
 
 
-ProgressCallback = Callable[[list[WordResult]], None]
+ProgressCallback = Callable[[list[LemmaResult]], None]
 
 
 @dataclass
@@ -109,16 +112,16 @@ class _BaseExercise:
     _started_at: datetime | None = field(default=None, init=False, repr=False)
     _total_rounds: int = field(default=0, init=False, repr=False)
     _correct_rounds: int = field(default=0, init=False, repr=False)
-    _words_practiced: set[str] = field(default_factory=set, init=False, repr=False)
+    _lemmas_practiced: set[str] = field(default_factory=set, init=False, repr=False)
 
     def _bookkeep(self, result: RoundResult) -> None:
         self._total_rounds += 1
         if result.correct:
             self._correct_rounds += 1
-        for wr in result.word_results:
-            self._words_practiced.add(wr.word_id)
-        if self.progress_callback is not None and result.word_results:
-            self.progress_callback(result.word_results)
+        for lr in result.lemma_results:
+            self._lemmas_practiced.add(lr.lemma_id)
+        if self.progress_callback is not None and result.lemma_results:
+            self.progress_callback(result.lemma_results)
 
     def finish(self) -> SessionSummary:
         """Return aggregated stats for the session.
@@ -132,7 +135,7 @@ class _BaseExercise:
             exercise_type=self.exercise_type,
             total_rounds=self._total_rounds,
             correct_rounds=self._correct_rounds,
-            words_practiced=sorted(self._words_practiced),
+            lemmas_practiced=sorted(self._lemmas_practiced),
             duration_seconds=(end - start).total_seconds(),
         )
 

@@ -1,0 +1,45 @@
+{% if lemmas %}
+<table class="table is-fullwidth is-striped is-hoverable">
+  <thead>
+    <tr>
+      <th>Lemma</th>
+      <th>Language</th>
+      <th>Part of Speech</th>
+      <th>Topics</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for lemma in lemmas %}
+    <tr>
+      <td><a href="/lemmas/{{ lemma.id }}"><strong>{{ lemma.text }}</strong></a></td>
+      <td><span class="tag is-info is-light">{{ lemma.language }}</span></td>
+      <td>{{ lemma.part_of_speech or '-' }}</td>
+      <td>{% for t in lemma.topics[:4] %}<span class="tag is-light mr-1">{{ t }}</span>{% endfor %}{% if lemma.topics | length > 4 %}<span class="has-text-grey is-size-7">+{{ lemma.topics | length - 4 }}</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<nav class="level is-mobile">
+  <div class="level-left">
+    <p class="level-item is-size-7 has-text-grey">
+      {{ offset + 1 }}-{{ offset + lemmas | length }} of {{ total }} lemma(s)
+    </p>
+  </div>
+  <div class="level-right">
+    {% if offset > 0 %}
+    <a class="level-item button is-small"
+       hx-get="/lemmas/partial?{{ page_query }}&offset={{ [offset - page_size, 0] | max }}"
+       hx-target="#lemma-table-container">Previous</a>
+    {% endif %}
+    {% if offset + lemmas | length < total %}
+    <a class="level-item button is-small"
+       hx-get="/lemmas/partial?{{ page_query }}&offset={{ offset + page_size }}"
+       hx-target="#lemma-table-container">Next</a>
+    {% endif %}
+  </div>
+</nav>
+{% else %}
+<p class="has-text-grey has-text-centered">
+  No lemmas found matching your filters.
+</p>
+{% endif %}
