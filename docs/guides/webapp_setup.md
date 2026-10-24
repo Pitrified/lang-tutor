@@ -15,7 +15,7 @@ This guide covers setting up and deploying the FastAPI webapp with Google OAuth 
 Install the webapp dependencies:
 
 ```bash
-uv sync --extra webapp
+make sync
 ```
 
 Or with pip:
@@ -89,11 +89,10 @@ python -c "import secrets; print(secrets.token_hex(32))"
 Start the development server:
 
 ```bash
-# Using uvicorn directly
-uv run uvicorn lang_tutor.webapp.app:app --reload
+make serve       # uvicorn with auto-reload
 
-# Or using the app module
-uv run python -m lang_tutor.webapp.app
+# Or the app module, which reads host and port from WebappParams
+uv run --no-sync python -m lang_tutor.webapp.app
 ```
 
 The API will be available at:

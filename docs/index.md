@@ -29,11 +29,10 @@ companion [`lang-tools`](https://github.com/Pitrified/lang-tools) library.
 git clone https://github.com/Pitrified/lang-tutor.git
 cd lang-tutor
 
-uv sync --all-extras --all-groups
-
-uv run pytest
-uv run mkdocs serve
-uvicorn lang_tutor.webapp.app:app --reload
+make sync
+make check
+make docs
+make serve
 ```
 
 `lang-tools` is consumed as a library; for local development it is resolved via
