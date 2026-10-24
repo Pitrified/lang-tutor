@@ -53,6 +53,10 @@ The pre-commit hooks run on each commit; run them all by hand with
 ## Environment Configuration
 
 The project expects environment variables to be stored in `~/cred/lang-tutor/.env`.
+Create it before the first `make check`: copy `nokeys.env` there. The test suite needs
+`LANG_TUTOR_SAMPLE_ENV_VAR=sample`, and the params singleton reads `SAMPLE_API_KEY` on import
+(any value works). In dev mode no real secret is needed. `lang-tools` reads its own
+`~/cred/lang-tools/.env` (see its getting-started guide).
 
 !!! warning "Security"
     Never commit `.env` files or secrets to the repository.
