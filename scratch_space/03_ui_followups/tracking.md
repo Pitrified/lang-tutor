@@ -12,6 +12,8 @@ questions in [`00_start.md`](00_start.md).
 - Every lang-tools code change waits for one release and one pin bump in phase 5; data changes
   reach lang-tutor through the read API without a tag.
 - This folder owns the look-alike end-to-end check (`00_start.md` Q3).
+- The first-card fixes live in lang-tools' `12_card_senses` (`00_start.md` Q11); phase 3 waits for
+  it and re-lists the cards, and phase 5 releases its code.
 
 ## Phases
 
@@ -19,7 +21,7 @@ questions in [`00_start.md`](00_start.md).
 | -- | ---------------------- | -------------------------------------------------- | ------ |
 | 1  | Look-alike drills      | [`01_lookalike_drills.md`](01_lookalike_drills.md) | done |
 | 2  | Durable progress       | [`02_durable_progress.md`](02_durable_progress.md) | discarded |
-| 3  | First cards            | [`03_first_cards.md`](03_first_cards.md)           | planned |
+| 3  | First cards            | [`03_first_cards.md`](03_first_cards.md)           | in progress |
 | 4  | Sentences for pt/es/fr | [`04_sentences.md`](04_sentences.md)               | discarded |
 | 5  | lang-tools release     | [`05_lang_tools_release.md`](05_lang_tools_release.md) | planned |
 
@@ -51,3 +53,13 @@ Append-only. Newest at the bottom.
   (it fired on 0 of 1,942 cards), and *era* moved to phase 3 as a best-sense problem. The
   lang-tools corpus was rebuilt with the look-alike review's phase 3 samples: 6,852 edges, gate
   PASS. The terse notes went to lang-tools as `r0011`. `make check` green (148). Phase 1 closed.
+- 2026-11-03 : phase 3 started. Plan review: rounds draw at random over the B1 pool, so the
+  common cards are the most met, not the first met (overview reworded); and a best-sense rule
+  cannot fix a lemma that has no right sense (*é* is only the letter), so the count sorts the
+  bad cards by cause first.
+- 2026-11-03 : phase 3 count: about 98 of the pt top 500 cards are wrong (a third of the top
+  100), from four causes: one-letter lemmas, wrong links to rare concepts, a right sense that
+  loses the pick, and digit-first translations; es and fr show the same. Neither a rule nor an
+  override alone fixes it; raised as `00_start.md` Q11.
+- 2026-11-03 : Q11 answered a: all four fixes, in lang-tools' new `12_card_senses` (branch
+  `feat/12_card_senses`, four phases, its Q1 to Q4 open). Phase 3 stays in progress, waiting on it.

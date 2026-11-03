@@ -188,3 +188,25 @@ for a later folder.
   - Recommended: b, because the missing rows are mostly cognates of rarer words and do not
     change this phase's numbers, and the next review round rebuilds anyway.
   - ANS: a. Corpus rebuilt on 2026-11-03.
+- Q11: Phase 3's count found about 98 bad cards in the pt top 500 (a third of the top 100), from
+  four causes (`03_first_cards.md`, "What the implementation found"). Which fixes go in?
+  1. One-letter lemmas get no card: a rule in lang-tools' drill table (code).
+  2. Translations put a word before a digit, a Roman numeral or a single letter (*dez* "ten",
+     not "x"): a rule in lang-tools' card translations (code).
+  3. Drop the wrong links (*seja* "are", *tinha* "ringworm", fr *a* "repel") as reviewed rows
+     in the existing `member_form_drops.jsonl` (data).
+  4. A new reviewed best-sense override, so a lemma whose right sense loses the pick shows it
+     (*homens* "men", *bem* "well"): a new curated file and its applier (code), plus the rows.
+  - a. All four. The review for 3 and 4 runs on the top 1,000 cards per language with the
+    agent harness of the look-alike review (a rulebook and a CLI subcommand), as its own
+    lang-tools folder; this phase then re-lists the cards.
+  - b. 1, 2 and 3 only: no new applier, and the "loses the pick" group (about 43 per 500 in
+    pt, the largest) stays.
+  - c. 1 and 2 now, which fix about 26 of the 98 in pt; 3 and 4 move to their own lang-tools
+    folder, and this phase closes on the rules.
+  - Recommended: a, because the largest group needs 4, and the review machinery exists; c is
+    the fallback if a new review is too much right now.
+  - ANS: a. All four go in lang-tools' `12_card_senses` (branch `feat/12_card_senses`), opened
+    on 2026-11-03: phase 1 the two rules, phases 2 to 4 the override input, the review harness
+    and the run. This folder's phase 3 waits for it, then re-lists the cards; its code ships in
+    phase 5's release.

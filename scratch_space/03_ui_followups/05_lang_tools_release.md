@@ -6,9 +6,13 @@ status: planned
 
 ## Overview
 
-One lang-tools tag for the code changes this folder needs, and one pin bump here. The known one
-is the import fix: `lang_tools.lexicon` imports fastapi-tools through the params. Phase 3 may add
-a best-sense rule. Context: [`00_start.md`](00_start.md), item 5; the fix imports `WebappParams` lazily (`00_start.md` Q7, a).
+One lang-tools tag for the code changes this folder needs, and one pin bump here:
+- the import fix: `lang_tools.lexicon` imports fastapi-tools through the params; the fix
+  imports `WebappParams` lazily (`00_start.md` Q7, a);
+- the code of lang-tools' `12_card_senses` (phase 3, Q11): the two build rules and the
+  best-sense override.
+
+Context: [`00_start.md`](00_start.md), item 5.
 
 ## Plan
 
