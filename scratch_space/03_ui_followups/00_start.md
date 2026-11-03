@@ -1,0 +1,151 @@
+---
+status: planned
+priority: 0
+description: |
+  The learner-side follow-ups left open after lang-tools' concept model and look-alike review:
+  play the look-alike drills on the reviewed corpus, fix the first cards a learner meets, and
+  fix a lang-tools import, in one lang-tools release.
+comment: |
+  Opened on 2026-11-03, on the user's request to go back to the UI and go through every open
+  item touching lang-tutor. The items come from lang-tools' 09_concept_model backlog and from
+  phase 5 of 11_lookalike_review (both in the lang-tools repo). Durable progress and pt/es/fr
+  sentences were deferred (Q4, Q6).
+---
+
+# UI follow-ups - start
+
+## The idea
+
+After the look-alike review, go back to the learner-facing app and go through every open item
+that touches it, in the user's words: "now we go back to some ui... open a plan folder in tutor,
+let's go through all of them".
+
+## Where lang-tutor stands
+
+- On `main` at `d6930c5`, clean, pinned to `lang-tools @ v0.2.0`.
+- The five exercises play end to end over HTTP in pt, en and fr (lang-tools `09_concept_model`
+  phase 9). Rounds are drawn from `LemmaCard`s weighted by session progress
+  (`progress/selection.py`).
+- The look-alike surface is built:
+  - pair matching can use a false friend as a decoy and returns the trap note when it fools the
+    learner (`exercises/pair_matching.py`);
+  - selection multiplies a trap's weight by 1.3 and a cognate's by 0.7 (`SelectionWeights`);
+  - the lemma page lists the best sense's traps and cognates (`routers/lemmas_router.py`).
+- It was last played on a corpus of about 2,800 look-alike edges. The rebuilt corpus in
+  lang-tools now has 5,523 (4,768 cognate, 356 partial, 399 full), and phase 4 of the review
+  (tiers C and D) will add more.
+- Since `v0.2.0`, lang-tools changed data, docs and plans; the only `src/` change is to the
+  quality report. Reviewed data reaches lang-tutor through the read API or a local checkout,
+  never through the tag, so the new edges need no pin bump.
+
+## The open items
+
+1. **Look-alike drills on the reviewed corpus.** Serve the rebuilt corpus, play pair matching
+   and the lemma pages, and check:
+   - that the trap note reads well after a wrong tap;
+   - whether the 1.3 trap bonus now over-selects, since tier B put traps among the most
+     common cards.
+   Source: lang-tools `11_lookalike_review/05_closeout.md`.
+2. **Progress lost on restart.** `SessionProgressService` keeps every `UserLemmaProgress` in
+   memory per process, and its docstring names itself the seam a durable store replaces. Users
+   are in memory too (`UserService`). The Render blueprint runs on the free plan, which has no
+   persistent disk. Source: lang-tools `09_concept_model/09_sample_and_consumer.md` Q2.
+3. **Bad first cards.** Common inflected forms get a rare homograph as their best sense: pt *é*
+   "e" (the letter), *são* "healthy", *seja* "are", and *brasil* "brazilwood". The best sense is
+   the highest `sense_frequency`, with ties broken by concept commonness
+   (lang-tools `lemma_store._derive_drill_table`), so a sense with no frequency data can win.
+   The fix is in lang-tools: a curated override for the top forms (data), or a rule in the
+   best-sense pick (code, so a tag and a pin bump). Source: lang-tools `09_concept_model`
+   backlog.
+4. **Sentence reconstruction has almost no content.** OMW has example sentences for en and it
+   only; pt, es and fr have 3 or 4 each, from 10 hand-written rows in lang-tools
+   `data/curated/example_sentences.jsonl`. Two ways to scale it, both in lang-tools: an LLM job
+   on the phase 8 loop (paid, sample-measured first), or Tatoeba (CC-BY, already staged).
+   Source: lang-tools `09_concept_model` backlog and `09_sample_and_consumer.md` Q1.
+5. **`lang_tools.lexicon` needs fastapi-tools to import.** `lemma_store` imports the params,
+   which import `WebappParams`, which imports `fastapi_tools`, but fastapi-tools is only in
+   lang-tools' `webapp` extra. lang-tutor does not hit it, since `make sync` installs every
+   extra. The fix is lang-tools code: a patch release and a pin bump. Source: lang-tools
+   `09_concept_model` backlog.
+
+Related but not in this folder: data for tag installs (lang-tools `10_data_for_tag_installs`),
+which only matters for the `in_process` mode, and has an answer for now
+(`make dev-lang-tools`).
+
+## Proposed phases
+
+Cheapest and most informative first:
+
+1. Look-alike drills check: no paid run, no code unless the check finds something.
+2. Durable progress: lang-tutor only.
+3. First cards: lang-tools data or code, measured first.
+4. Sentences for pt, es, fr: lang-tools data, the only item that may cost money.
+5. lang-tools release: the import fix, plus any code change from phase 3, in one tag and one
+   pin bump.
+
+Settled on 2026-11-03 (Q2, Q4, Q6): the order holds, and phases 2 and 4 are deferred, so the
+folder runs 1, 3, 5. Their files stay, marked `discarded` for this folder, as the starting point
+for a later folder.
+
+## Open questions
+
+- Q1: This folder sits in lang-tutor's `scratch_space/`, but both `CLAUDE.md` and
+  `.github/copilot-instructions.md` say planning for this repo lives in lang-tools' `scratch_space/`.
+  - a. Update both files: lang-tutor plans live here from `03_ui_followups` on, and the earlier
+    ones stay in lang-tools.
+  - b. Leave the files as they are and treat this folder as an exception.
+  - Recommended: a, because otherwise the next session reads the instructions and looks for this
+    plan in the wrong repo.
+  - ANS: a. Both files updated on 2026-11-03:
+    plans for this repo live here, and the earlier ones stay in lang-tools.
+- Q2: Phase order.
+  - a. As proposed: drills check, progress, first cards, sentences, release.
+  - b. First cards first: they are the first thing a learner sees, and the drills check would
+    then run on better cards.
+  - Recommended: a, because the drills check costs nothing and can change the selection weights
+    that phase 3 then measures against.
+  - ANS: a. Drills check, then first cards, then the release;
+    phases 2 and 4 are deferred (Q4, Q6).
+- Q3: The drills check overlaps lang-tools `11_lookalike_review/05_closeout.md`, which lists the
+  same end-to-end check.
+  - a. This folder owns the check, and the look-alike close-out names this folder for it and
+    keeps its own two items (overlap cognates, seed re-export).
+  - b. The look-alike close-out keeps it, and this folder drops phase 1.
+  - Recommended: a, because the check is played in lang-tutor and its fixes (weights, the trap
+    note) land here.
+  - ANS: a. This folder owns the check.
+    lang-tools' `11_lookalike_review/05_closeout.md` now names it,
+    and re-runs it only if tiers C and D change the result.
+- Q4: Where durable progress is stored, given that Render's free plan has no persistent disk.
+  - a. One SQLite file under lang-tutor's `data/`, behind the `SessionProgressService` seam;
+    durable locally, and lost on a Render redeploy until a disk or a database is added.
+  - b. A JSON file per user, same seam, same Render caveat.
+  - c. A hosted database now (Render Postgres or similar), which also covers users.
+  - Recommended: a, because it fixes local use at once, keeps one file and one query
+    language, and moves to a hosted database later behind the same seam.
+  - ANS: Not now: the permanent store is deferred.
+    Phase 2 is set aside, and progress stays in memory.
+- Q5: How to fix the bad first cards.
+  - a. A rule in lang-tools' best-sense pick: a sense with no frequency data cannot become the
+    best sense of a common lemma (code: tag and pin bump).
+  - b. A curated override of the best sense for the top forms (data only, no tag).
+  - c. Measure first: count how many of the 500 most common pt, es and fr cards have a junk best
+    sense, then choose between a and b.
+  - Recommended: c, because a query against the corpus is cheap and the count decides whether a
+    hand list is enough.
+  - ANS: c. Phase 3 counts the junk best senses first, then picks a rule or an override.
+- Q6: Where pt, es and fr sentences come from.
+  - a. Tatoeba: real sentences, free, already staged; CC-BY, so attribution goes in the dataset
+    card, and quality and level vary.
+  - b. An LLM job on the phase 8 loop, one A1-B1 sentence per lemma, sample-measured and
+    approved before the paid run.
+  - c. Tatoeba first, then the LLM job for the common lemmas Tatoeba does not cover.
+  - Recommended: c, because Tatoeba is free and real, and the paid job then only covers the gap.
+  - ANS: Deferred.
+    Phase 4 is set aside; sentence reconstruction keeps its 3 or 4 sentences in pt, es and fr.
+- Q7: How to fix the fastapi-tools import in lang-tools.
+  - a. Import `WebappParams` lazily, so the lexicon imports without the `webapp` extra.
+  - b. Make fastapi-tools a base dependency of lang-tools.
+  - Recommended: a, because the lexicon has no use for the webapp, and b would pull a web stack
+    into every content consumer.
+  - ANS: a. Phase 5 imports `WebappParams` lazily.

@@ -111,8 +111,9 @@ trailing colon. Module docstrings are narrative prose.
 
 - `tests/` mirrors `src/lang_tutor/`; it needs no lang-tools corpus.
 - `static/` and `templates/` hold the webapp's assets and Jinja2 pages.
-- `scratch_space/` is for throwaway prototyping notebooks. Planning for this repo lives in
-  lang-tools' `scratch_space/` (see `CLAUDE.md`).
+- `scratch_space/` holds the planning record and prototyping notebooks: one numbered folder per
+  initiative, `tracking.md` first. The earlier planning (the repo split, the concept model) is in
+  lang-tools' `scratch_space/`.
 - `docs/` is the MkDocs site: `guides/` for tooling and procedures, `reference/` generated from
   docstrings (never write files there). Keep it current at the end of every task, updating
   statements in place rather than appending history.
