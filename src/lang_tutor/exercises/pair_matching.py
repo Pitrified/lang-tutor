@@ -8,10 +8,12 @@ sense (`LemmaCard.translations`). Two cards that would show the same right-hand
 word make the round ambiguous, so a card takes its next translation instead,
 and a card with no unused translation left is dropped from the round.
 
-Decoys (phase 11): when a paired card is a false friend of a word in the
+Decoys (phase 11): when a paired card is a full false friend of a word in the
 translation language (`LemmaCard.lookalikes`), that look-alike can join the
 right column as a decoy. It matches nothing; tapping it for its look-alike
-returns the trap note as feedback (pt *esquisito* is not *exquisite*).
+returns the trap note as feedback (pt *esquisito* is not *exquisite*). A decoy
+has to be a wrong answer, so a partial false friend is never one: it shares an
+everyday meaning (pt *forte* is mostly strong, but also a fort).
 """
 
 from __future__ import annotations
@@ -149,7 +151,7 @@ class PairMatchingExercise(_BaseExercise):
                 continue
             for hint in card.lookalikes:
                 if (
-                    hint.is_trap
+                    hint.kind == "full"
                     and hint.language == self.target_language
                     and hint.text.casefold() not in used
                 ):

@@ -1,5 +1,5 @@
 ---
-status: planned
+status: in progress
 priority: 0
 description: |
   The learner-side follow-ups left open after lang-tools' concept model and look-alike review:
@@ -149,3 +149,42 @@ for a later folder.
   - Recommended: a, because the lexicon has no use for the webapp, and b would pull a web stack
     into every content consumer.
   - ANS: a. Phase 5 imports `WebappParams` lazily.
+- Q8: Pair matching uses partial false friends as decoys, so a right answer can be marked
+  wrong (pt *era* / en *era*: the note itself says pt *era* is "also an era"). Found in phase 1.
+  - a. Decoys only from full false friends (`kind == "full"`); partials keep the selection
+    bonus and the lemma page note. One condition in `PairMatchingExercise._decoys`, plus a test.
+  - b. Keep partial decoys, and count a tap on one as correct, with the note as a hint.
+  - c. Keep as is.
+  - Recommended: a, because a decoy has to be wrong to work, and a partial is right in some
+    sense; full false friends are 399 of the 755 served traps, so about half the decoys stay.
+  - ANS: a. Decoys only from full false friends, in `PairMatchingExercise._decoys`, with a
+    test. It does not cover the *era* case that raised the question: that edge is `full` (the
+    rulebook's own example, by the inflected-form rule), and the card teaches *era*'s noun
+    sense, "an indefinite period", whose only en lemma is *time*. So a check against the
+    card's own translations would not catch it either; tried and dropped, since it fired on 0
+    of 1,942 cards. The *era* case is a best-sense problem and goes to phase 3.
+- Q9: The trap notes come in two styles: tier A's terse (`pt: pull`, often the pt side only) and
+  tier B's full (`pt "fato" means fact; en "fate" is "destino"`). After "False friend!" a terse
+  note does not say what the tapped word means. The notes are lang-tools data. Found in phase 1.
+  - a. Leave the notes; show the note on the lemma page only, and after a wrong tap show the pt
+    word's own translation next to it.
+  - b. Rewrite the terse notes to the full style in lang-tools, as a `recheck` of those trap
+    rows under a rulebook line on the note format: 139 of the 755 served trap notes (87 full,
+    52 partial) are terse, so one agent batch.
+  - c. Leave it for now.
+  - Recommended: b, because the note is what a learner reads at the moment of the mistake, and
+    the review machinery already does exactly this; it belongs in lang-tools'
+    `11_lookalike_review`, not here.
+  - ANS: b. The current rulebook's Notes section already asks for both sides, and the terse rows
+    predate it, so lang-tools' `11_lookalike_review/04_tiers_c_to_e.md` now opens with an `r0011`
+    re-check of the 139 rows, with no guide change.
+- Q10: The phase 3 samples of lang-tools' look-alike review (3,000 rows, about 1,280 cognates and
+  71 traps) were committed after the last corpus build, so the served corpus lacks them
+  (*prejudicar* / *prejudice*). Found in phase 1.
+  - a. Rebuild the lang-tools corpus now (about 4 minutes, then the quality gate, which
+    rewrites the tracked `report.md`, and a commit of it on lang-tools `main`).
+  - b. Leave it to the next look-alike round (phase 4 of `11_lookalike_review`), which rebuilds
+    after every round anyway.
+  - Recommended: b, because the missing rows are mostly cognates of rarer words and do not
+    change this phase's numbers, and the next review round rebuilds anyway.
+  - ANS: a. Corpus rebuilt on 2026-11-03.

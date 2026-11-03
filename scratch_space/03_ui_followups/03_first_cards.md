@@ -20,6 +20,12 @@ The most common cards are the first a learner meets, and some show a rare homogr
     phase 5).
 - Fix by the chosen method.
 - Rebuild the lang-tools corpus and re-list the same cards.
+- Include the translation the card shows: phase 1 played *postar* paired with "get off" and
+  *primeira* with "prime".
+- Include the inflected forms labelled `f` by their frequent reading whose card teaches the
+  other, shared sense: pt *era* is labelled `f` against en *era* as "was", but its card shows
+  "an indefinite period" (*time*), so pair matching can offer en *era* as a decoy for a card on
+  the era sense (phase 1, `00_start.md` Q8).
 
 ## Out of scope
 
