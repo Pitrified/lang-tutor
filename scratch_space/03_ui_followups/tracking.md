@@ -23,7 +23,7 @@ questions in [`00_start.md`](00_start.md).
 | 2  | Durable progress       | [`02_durable_progress.md`](02_durable_progress.md) | discarded |
 | 3  | First cards            | [`03_first_cards.md`](03_first_cards.md)           | done |
 | 4  | Sentences for pt/es/fr | [`04_sentences.md`](04_sentences.md)               | discarded |
-| 5  | lang-tools release     | [`05_lang_tools_release.md`](05_lang_tools_release.md) | planned |
+| 5  | lang-tools release     | [`05_lang_tools_release.md`](05_lang_tools_release.md) | done |
 
 Status values: draft / planned / in progress / done / superseded / discarded.
 
@@ -71,3 +71,12 @@ Append-only. Newest at the bottom.
 - 2026-11-05 : Q12 a: pt *era* / en *era* relabelled `partial` in lang-tools (`a1c07d6`),
   rebuilt, gate PASS, the decoy scan is clean. Phase 3 done; phase 5 (the lang-tools release)
   is next.
+- 2026-11-05 : phase 5 started. In lang-tools: `WebappParams` loads on first use, with a test
+  in a fresh interpreter that blocks fastapi-tools (`adea023`); docs reviewed and brought up to
+  date; release commit `4002aa0` (CHANGELOG, version 0.3.0); `feat/12_card_senses` merged
+  `--no-ff` into main (`3d4fa24`), tagged `v0.3.0`. Waiting on the user's push of lang-tools
+  main and the tag; then the pin bump here (`pyproject.toml`, `uv lock`).
+- 2026-11-05 : lang-tools main and `v0.3.0` pushed. Pin bumped to `@v0.3.0` (`uv.lock`: lang-tools
+  0.2.0 `490434d` -> 0.3.0 `3d4fa24`); `make undev` replaced the local editable lang-tools with the
+  tagged one; `make check` green (148); the dev server restarted on the tag and answers. Phase 5
+  done, and with it the folder.
