@@ -78,7 +78,9 @@ How the tutor uses them:
   a cognate a mild damping (`cognate_factor` 0.7, free vocabulary).
 - **Pair matching** adds up to one false-friend decoy to the right column: en
   *exquisite* next to pt *esquisito*. It matches nothing, and tapping it for its
-  look-alike shows the trap note.
+  look-alike shows the trap note. A decoy has to be a wrong answer, so it is never
+  a partial false friend, which shares an everyday meaning (pt *forte* is mostly
+  strong, but also a fort).
 - **The lemma page** shows a "Looks like" box, with false friends as warnings and
   cognates as "same meaning".
 

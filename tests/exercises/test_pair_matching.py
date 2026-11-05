@@ -87,6 +87,15 @@ def test_false_friend_decoy_joins_the_right_column() -> None:
     assert other.feedback == "Wrong pair."
 
 
+def test_partial_false_friend_is_no_decoy() -> None:
+    """A partial false friend shares a meaning, so tapping it would not be wrong."""
+    forte = _card("forte", {"en": ["strong"]})
+    forte.lookalikes = [LookalikeHint(language="en", text="fort", kind="partial")]
+    ex = PairMatchingExercise(target_language="en", rng=random.Random(0))
+    round_ = ex.start([forte, _card("paz", {"en": ["peace"]})], max_decoys=1)
+    assert sorted(round_.prompt["right_lemmas"]) == ["peace", "strong"]
+
+
 def test_no_decoys_unless_asked() -> None:
     trap = _card("esquisito", {"en": ["weird"]})
     trap.lookalikes = [LookalikeHint(language="en", text="exquisite", kind="full")]
