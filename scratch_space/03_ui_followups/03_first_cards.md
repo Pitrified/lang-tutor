@@ -1,5 +1,5 @@
 ---
-status: in progress
+status: done
 ---
 
 # Phase 3 - first cards
@@ -68,3 +68,33 @@ counts by cause are my reading, so they are estimates:
   is a real one, but the label is about the frequent reading "was".
 - Q5 c asked for a count to choose between a rule and an override. The count says neither
   alone: the four causes need four fixes. Raised as `00_start.md` Q11.
+
+### Re-list after lang-tools `12_card_senses` (2026-11-05)
+
+The same 500 cards per language, listed again from the corpus rebuilt on lang-tools
+`148b316` (all five phases of `12_card_senses` done; the review covered pt only, its Q6).
+
+| Cause | pt before | pt after | es after | fr after |
+| ----- | --------: | -------: | -------: | -------: |
+| One-letter lemma | 18 | 0 | 0 (8 before) | 0 (9 before) |
+| First translation a digit, letter or numeral | 24 | 0 | 0 (9 before) | 1 (14 before), *mm* "mm" |
+| Wrong best sense, by reading | about 98 | about 16 | not reviewed | not reviewed |
+
+- **pt:** the 16 left are listed with their reason in lang-tools
+  `12_card_senses/04_review_run.md`: nine have no right sense in the corpus (*sim*, *além*,
+  *natal*, ...), handed to lang-tools `13_missing_senses`; six are verb-form homographs the
+  rulebook keeps (*são* "healthy", *vão* "vain", ...); *copa* was repinned. Two translation
+  oddities stay: *aí* and *lá* show "yon, yonder" on the right sense ("there"), and *primeira*
+  "prime, premier" on "first in rank".
+- **es and fr:** only the build rules apply, so the sense errors of the first count are all
+  still there (fr *comment* "yak", *est* "east", *un* "two", *hommes* "work force", *tel* "one",
+  es *china* "pebble", *argentina* the fish genus).
+- **The *era* decoy:** the pt *era* card now teaches "an era of history" (translations "age,
+  historic period"), and its look-alike with en *era* is labelled `full` (lang-tools
+  `lookalikes.jsonl`, batch `r0001`, which moved it from `partial`). Pair matching therefore
+  can put en *era* in the right column as a wrong answer for a card that means era. A scan of
+  the top 1,000 pt cards for a full en look-alike that shares the card's concept, or appears in
+  its gloss or translations, found only this one (*novela* matched on the gloss word "novel",
+  a false hit: its card is "novella"). Raised as `00_start.md` Q12.
+- **The *era* decoy, fixed** (`00_start.md` Q12, a): the pair is `partial` from lang-tools
+  `a1c07d6` on, the read API serves it, and the scan finds no card left that is its own decoy.

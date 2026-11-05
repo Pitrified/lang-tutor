@@ -21,7 +21,7 @@ questions in [`00_start.md`](00_start.md).
 | -- | ---------------------- | -------------------------------------------------- | ------ |
 | 1  | Look-alike drills      | [`01_lookalike_drills.md`](01_lookalike_drills.md) | done |
 | 2  | Durable progress       | [`02_durable_progress.md`](02_durable_progress.md) | discarded |
-| 3  | First cards            | [`03_first_cards.md`](03_first_cards.md)           | in progress |
+| 3  | First cards            | [`03_first_cards.md`](03_first_cards.md)           | done |
 | 4  | Sentences for pt/es/fr | [`04_sentences.md`](04_sentences.md)               | discarded |
 | 5  | lang-tools release     | [`05_lang_tools_release.md`](05_lang_tools_release.md) | planned |
 
@@ -63,3 +63,11 @@ Append-only. Newest at the bottom.
   override alone fixes it; raised as `00_start.md` Q11.
 - 2026-11-03 : Q11 answered a: all four fixes, in lang-tools' new `12_card_senses` (branch
   `feat/12_card_senses`, four phases, its Q1 to Q4 open). Phase 3 stays in progress, waiting on it.
+- 2026-11-05 : phase 3 re-list on lang-tools `148b316` (`12_card_senses` done): pt one-letter
+  and digit-first cards 0 (from 18 and 24), wrong best senses about 16 (from about 98, each
+  listed with its reason); es and fr fixed for the two rules only (their review is not run).
+  Found the pt *era* card labelled `full` against en *era* while teaching "era", so it can be
+  its own decoy; raised `00_start.md` Q12. Phase 3 stays in progress until Q12 is settled.
+- 2026-11-05 : Q12 a: pt *era* / en *era* relabelled `partial` in lang-tools (`a1c07d6`),
+  rebuilt, gate PASS, the decoy scan is clean. Phase 3 done; phase 5 (the lang-tools release)
+  is next.

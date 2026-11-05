@@ -210,3 +210,18 @@ for a later folder.
     on 2026-11-03: phase 1 the two rules, phases 2 to 4 the override input, the review harness
     and the run. This folder's phase 3 waits for it, then re-lists the cards; its code ships in
     phase 5's release.
+- Q12: The pt *era* card now teaches the noun "era" (lang-tools `12_card_senses` pinned it),
+  but its look-alike with en *era* is labelled `full` (lang-tools look-alike recheck `r0001`
+  changed it from `partial`: the frequent reading is "was"). Pair matching takes every `full`
+  look-alike as a decoy, so a round can offer "era" as the wrong answer for a card meaning era.
+  It is the only such case in the top 1,000 pt cards.
+  - a. Relabel the pair `partial` in lang-tools with a later row in `lookalikes.jsonl` (latest
+    row wins), noting the card: no decoy, and the lemma page still warns about "was".
+  - b. In lang-tutor, skip a decoy whose text the card's gloss or translations contain. It
+    misses *era* itself (its translations are "age, historic period") unless the gloss is
+    searched, and the gloss search gives false hits (*novela* "novel").
+  - c. Leave it: one card, and the trap note still teaches "was".
+  - Recommended: a, because the label is wrong for the card that is shown, and the data fix
+    is one row.
+  - ANS: a. Relabelled `partial` in lang-tools `lookalikes.jsonl` with a later row
+    (`model` `manual`, batch `correction`), keeping the note batch `a0001` wrote.
