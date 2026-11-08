@@ -1130,8 +1130,8 @@ wheels = [
 
 [[package]]
 name = "lang-tools"
-version = "0.3.0"
-source = { git = "https://github.com/Pitrified/lang-tools?rev=v0.3.0#3d4fa2476c0de4e41a5e68d3987a6a846e54d51a" }
+version = "0.4.0"
+source = { git = "https://github.com/Pitrified/lang-tools?rev=v0.4.0#1397b1079db7bf67b5029a84d16e282fea7b85bf" }
 dependencies = [
     { name = "chroma-haystack" },
     { name = "haystack-ai" },
@@ -1208,7 +1208,7 @@ test = [
 requires-dist = [
     { name = "fastapi-tools", marker = "extra == 'webapp'", git = "https://github.com/Pitrified/fastapi-tools?rev=v0.1.0" },
     { name = "httpx", specifier = ">=0.28" },
-    { name = "lang-tools", git = "https://github.com/Pitrified/lang-tools?rev=v0.3.0" },
+    { name = "lang-tools", git = "https://github.com/Pitrified/lang-tools?rev=v0.4.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "python-dotenv", specifier = ">=1.0" },
 ]
