@@ -65,8 +65,9 @@ class DiacriticTypingExercise(_BaseExercise):
     ) -> ExerciseRound:
         """Build a round for a single lemma.
 
-        The prompt carries the meaning hints: the card's gloss and its first
-        translation in ``hint_language``.
+        The prompt carries the meaning hints: the card's gloss, its first
+        translation in ``hint_language``, and its form note when the word is an
+        inflected form (*são*: "they are").
 
         Args:
             card: Drill card of the target lemma; the lemma must contain
@@ -96,6 +97,7 @@ class DiacriticTypingExercise(_BaseExercise):
                 "disabled_keys": set(),
                 "glosses": [card.gloss] if card.gloss else [],
                 "translation": translations[0] if translations else "",
+                "form_note": card.form_note or "",
             },
             expected=state,
         )
