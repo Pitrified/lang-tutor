@@ -102,8 +102,10 @@ durable progress is a separate follow-up.
 | -------- | ---------- |
 | Pair matching | single words of 3+ letters with a translation in the target language; two cards never share a right-hand word |
 | Wordle | single words of the chosen length |
-| Diacritic typing | accented single words of 3+ letters; gloss and translation as hints |
-| Sentence reconstruction | lemmas with an example sentence; the round uses an example that contains the lemma |
+| Diacritic typing | accented single words of 3+ letters; gloss, translation and form note as hints |
+| Sentence reconstruction | lemmas with an example sentence; the round uses an example that contains the lemma, and the prompt gives its translation and form note |
+
+A card's `form_note` says which form of its word an inflected card is (pt *são*: `3rd person plural present of "ser": they are`); the lemma page shows it under the sense's gloss.
 
 All of them default to `max_cefr="B1"`. Example sentences exist for en (about
 33k concepts) and it (about 1.4k), plus a small curated set for pt, es and fr.

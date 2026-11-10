@@ -57,6 +57,7 @@
         {% if card.sense_frequency is not none %}<span class="tag is-light" title="Sense frequency (Zipf scale)">freq {{ '%.1f' | format(card.sense_frequency) }}</span>{% endif %}
       </div>
       <p class="mb-3">{{ card.gloss or 'No definition.' }}</p>
+      {% if card.form_note %}<p class="mb-3 has-text-grey is-italic">{{ card.form_note }}</p>{% endif %}
       <table class="table is-narrow">
         {% for lang, texts in card.translations.items() if texts %}
         <tr>

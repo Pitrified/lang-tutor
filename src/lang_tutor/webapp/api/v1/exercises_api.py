@@ -339,6 +339,7 @@ async def diacritic_start(
             "glosses": round_.prompt["glosses"],
             "word_length": len(round_.prompt["display"]),
             "translation": round_.prompt["translation"],
+            "form_note": round_.prompt["form_note"],
         },
     )
 
@@ -468,10 +469,12 @@ def _sentence_using_lemma(cards: list[LemmaCard]) -> tuple[LemmaCard, str] | Non
 
 
 def _sentence_hint(card: LemmaCard, hint_language: str) -> str:
-    """Return the reconstruction prompt: the drilled lemma and its meaning."""
+    """Return the reconstruction prompt: the lemma, its meaning and form note."""
     meaning = next(iter(card.translations.get(hint_language, [])), None)
     if card.lemma.language == hint_language or meaning is None:
         meaning = card.gloss or ""
+    if card.form_note:
+        meaning = f"{meaning}; {card.form_note}" if meaning else card.form_note
     return f"A sentence with “{card.lemma.text}” ({meaning})"
 
 

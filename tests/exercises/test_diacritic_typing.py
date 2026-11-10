@@ -21,6 +21,18 @@ def test_prompt_carries_the_meaning_hints() -> None:
     assert round_.prompt["display"] == ["_"] * 4
 
 
+def test_prompt_carries_the_form_note() -> None:
+    card = LemmaCard(
+        lemma=Lemma(text="são", language="pt", part_of_speech="verb"),
+        gloss="have the quality of being",
+        translations={"en": ["be"]},
+        form_note='3rd person plural present of "ser": they are',
+    )
+    round_ = DiacriticTypingExercise().start(card)
+    assert round_.prompt["form_note"] == '3rd person plural present of "ser": they are'
+    assert DiacriticTypingExercise().start(_card()).prompt["form_note"] == ""
+
+
 def test_diacritic_typing_correct_keystroke() -> None:
     ex = DiacriticTypingExercise()
     round_ = ex.start(_card())

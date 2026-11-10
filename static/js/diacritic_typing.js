@@ -51,10 +51,11 @@
       renderKeyboard(["á", "à", "â", "ã", "é", "ê", "í", "ó", "ô", "õ", "ú", "ç"]);
       hideMessage();
 
-      // Meaning hint: the translation, then the gloss of the word's best sense.
+      // Meaning hint: the translation, the form note of an inflected form, then
+      // the gloss of the word's best sense.
       const hint = document.getElementById("word-glosses");
       if (hint) {
-        const parts = [data.data.translation, ...(data.data.glosses || [])];
+        const parts = [data.data.translation, data.data.form_note, ...(data.data.glosses || [])];
         hint.textContent = parts.filter(Boolean).join(" - ");
       }
     } else {
